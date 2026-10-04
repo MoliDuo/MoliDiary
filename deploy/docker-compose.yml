@@ -13,7 +13,7 @@ services:
     stop_grace_period: 30s
     env_file: .env
     environment:
-      TZ: Asia/Kuala_Lumpur
+      TZ: Asia/Singapore
     depends_on:
       postgres:
         condition: service_healthy
@@ -43,7 +43,7 @@ services:
     restart: unless-stopped
     env_file: .env # POSTGRES_PASSWORD
     environment:
-      TZ: Asia/Kuala_Lumpur
+      TZ: Asia/Singapore
       POSTGRES_DB: moli-diary-db
       POSTGRES_USER: diary
     volumes:
@@ -65,7 +65,7 @@ services:
     user: '1000:1000'
     env_file: .env
     environment:
-      TZ: Asia/Kuala_Lumpur
+      TZ: Asia/Singapore
       PGHOST: postgres
       PGUSER: diary
       PGDATABASE: moli-diary-db
