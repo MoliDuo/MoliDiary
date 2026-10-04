@@ -1,3 +1,4 @@
+import { AsyncLocalStorage } from 'node:async_hooks';
 import type { AppDatabase } from '@/lib/db';
 import { FieldCipher } from '@/lib/crypto/field-cipher';
 
@@ -24,6 +25,23 @@ export function setDataKeySource(next: DataKeySource) {
   return previous;
 }
 
+// Background work has no request to read a credential from. It carries the
+// data key it was queued with, and everything it awaits sees that key here.
+const dataKeyContext = new AsyncLocalStorage<Buffer>();
+
+/** Runs `work` with `dataKey` as the key for getFieldCipher and getDataKey. */
+export function withDataKey<T>(dataKey: Buffer, work: () => Promise<T>) {
+  return dataKeyContext.run(dataKey, work);
+}
+
+/**
+ * The data key for the current unit of work: the one a background job was
+ * queued with, otherwise whatever the key source finds for this request.
+ */
+export async function getDataKey(database: AppDatabase): Promise<Buffer> {
+  return dataKeyContext.getStore() ?? (await source(database));
+}
+
 // Keyed by the key buffer, which the credential cache hands back unchanged,
 // so the HKDF subkeys are derived once per credential rather than per call.
 const ciphers = new WeakMap<Buffer, FieldCipher>();
@@ -33,13 +51,13 @@ const ciphers = new WeakMap<Buffer, FieldCipher>();
  * titles, summaries or tag names awaits this once and then encrypts and
  * decrypts synchronously. Throws UnauthorizedError without a valid credential.
  *
- * Server Components cannot read cookies inside after(), so work scheduled
- * from one must be handed the cipher by the render that scheduled it.
+ * Work queued on the AI worker runs under withDataKey, so it gets the key of
+ * the request that queued it without needing that request's cookies.
  */
 export async function getFieldCipher(
   database: AppDatabase,
 ): Promise<FieldCipher> {
-  const dataKey = await source(database);
+  const dataKey = await getDataKey(database);
   let cipher = ciphers.get(dataKey);
   if (!cipher) {
     cipher = new FieldCipher(dataKey);

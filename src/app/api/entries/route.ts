@@ -1,7 +1,8 @@
-import { after, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { db, type AppDatabase } from '@/lib/db';
 import { entries } from '@/lib/db/schema';
 import { processAIEntry } from '@/lib/ai/processor';
+import { scheduleAIJob } from '@/lib/ai/worker';
 import { nanoid } from 'nanoid';
 import { eq } from 'drizzle-orm';
 import { loadApiEntriesPage } from '@/lib/dashboard-data';
@@ -141,7 +142,7 @@ const routeHandlers = createEntriesRouteHandlers({
   db,
   createId: () => nanoid(12),
   processAIEntry,
-  schedule: (fn) => after(fn),
+  schedule: (fn) => scheduleAIJob(db, fn),
 });
 
 export const POST = routeHandlers.POST;

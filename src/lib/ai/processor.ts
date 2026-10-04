@@ -50,11 +50,18 @@ type ProcessorDeps = {
   model?: string;
 };
 
+// One client for the life of the process. The SDK retries 429s, 5xxs and
+// timeouts with backoff, so a flaky provider is retried before an entry is
+// marked failed.
+let sharedClient: OpenAI | undefined;
+
 function createOpenAIClient() {
-  return new OpenAI({
+  return (sharedClient ??= new OpenAI({
     apiKey: process.env.AI_API_KEY,
     baseURL: process.env.AI_BASE_URL,
-  });
+    timeout: Number(process.env.AI_TIMEOUT_MS) || 120_000,
+    maxRetries: Number(process.env.AI_MAX_RETRIES) || 3,
+  }));
 }
 
 async function mapWithConcurrency<T, R>(
