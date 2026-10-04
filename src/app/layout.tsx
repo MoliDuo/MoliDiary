@@ -8,8 +8,16 @@ import { themeBackgroundColor } from '@/lib/theme';
 export const dynamic = 'force-dynamic';
 
 export const metadata: Metadata = {
-  title: { default: 'Limen', template: '%s · Limen' },
+  title: { default: 'Moli Diary', template: '%s · Moli Diary' },
   description: 'A personal diary app',
+  icons: {
+    icon: [
+      { url: '/favicon.svg', type: 'image/svg+xml' },
+      '/favicon.ico',
+      '/icon.png',
+    ],
+    apple: '/apple-icon.png',
+  },
   robots: { index: false, follow: false, noarchive: true, nocache: true },
 };
 
@@ -26,7 +34,7 @@ export default async function RootLayout({
   const { theme } = await getSettings();
   return (
     <html lang="zh-CN" data-theme={theme}>
-      <body className="antialiased">
+      <body data-app="diary" className="antialiased">
         {children}
         <AppToaster theme={theme} />
       </body>

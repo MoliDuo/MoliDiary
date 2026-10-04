@@ -67,7 +67,7 @@ function markdownHeader(
   exportedAt: Date,
 ) {
   return [
-    '# Limen 日记导出',
+    '# Moli Diary 日记导出',
     '',
     `生成时间：${exportedAt.toISOString()}`,
     `条目数：${entryCount}`,

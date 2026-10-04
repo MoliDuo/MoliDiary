@@ -30,39 +30,39 @@ function handler(overrides: Record<string, unknown> = {}) {
 
 test('export route redirects unauthenticated requests to login', async () => {
   const response = await handler({ authorize: () => false })(
-    new Request('https://limen.test/api/export?format=json'),
+    new Request('https://diary.test/api/export?format=json'),
   );
   assert.equal(response.status, 303);
-  assert.equal(response.headers.get('location'), 'https://limen.test/login');
+  assert.equal(response.headers.get('location'), 'https://diary.test/login');
 });
 
 for (const query of ['format=xml', 'format=json&from=bad']) {
   test(`export route redirects invalid parameters: ${query}`, async () => {
     const response = await handler()(
-      new Request(`https://limen.test/api/export?${query}`),
+      new Request(`https://diary.test/api/export?${query}`),
     );
     assert.equal(
       response.headers.get('location'),
-      'https://limen.test/settings?export=invalid',
+      'https://diary.test/settings?export=invalid',
     );
   });
 }
 
 test('export route redirects empty results without a download', async () => {
   const response = await handler({ loadEntries: async () => [] })(
-    new Request('https://limen.test/api/export?format=json'),
+    new Request('https://diary.test/api/export?format=json'),
   );
   assert.equal(response.status, 303);
   assert.equal(
     response.headers.get('location'),
-    'https://limen.test/settings?export=empty',
+    'https://diary.test/settings?export=empty',
   );
   assert.equal(response.headers.get('content-disposition'), null);
 });
 
 test('export route streams Markdown with safe headers and timezone filename', async () => {
   const response = await handler()(
-    new Request('https://limen.test/api/export?format=markdown'),
+    new Request('https://diary.test/api/export?format=markdown'),
   );
   assert.equal(response.status, 200);
   assert.equal(response.headers.get('cache-control'), 'no-store');
@@ -73,14 +73,14 @@ test('export route streams Markdown with safe headers and timezone filename', as
   assert.equal(
     response.headers.get('content-disposition'),
     // The time is part of the name so two exports in a day do not collide.
-    'attachment; filename="limen-export-2026-07-28-0030.md"',
+    'attachment; filename="diary-export-2026-07-28-0030.md"',
   );
-  assert.match(await response.text(), /Limen 日记导出/);
+  assert.match(await response.text(), /Moli Diary 日记导出/);
 });
 
 test('export route streams complete JSON with correct headers', async () => {
   const response = await handler()(
-    new Request('https://limen.test/api/export?format=json'),
+    new Request('https://diary.test/api/export?format=json'),
   );
   assert.equal(
     response.headers.get('content-type'),
@@ -96,11 +96,11 @@ test('export route hides database errors behind a settings redirect', async () =
     loadEntries: async () => {
       throw new Error('secret database detail');
     },
-  })(new Request('https://limen.test/api/export?format=json'));
+  })(new Request('https://diary.test/api/export?format=json'));
   assert.equal(response.status, 303);
   assert.equal(
     response.headers.get('location'),
-    'https://limen.test/settings?export=error',
+    'https://diary.test/settings?export=error',
   );
   assert.doesNotMatch(await response.text(), /secret database detail/);
 });

@@ -1,5 +1,9 @@
+/* Colors, radii and fonts come from the Moli design tokens (moli-tokens.css and
+   moli-tailwind.css are copies of MoliSpec design/dist, never edited here). */
+@import './moli-tokens.css';
 @import 'tailwindcss';
 @plugin '@tailwindcss/typography';
+@import './moli-tailwind.css';
 
 /* The app themes via [data-theme] on <html>, never a `.dark` class. Pointing
    the variant at the class would make every `dark:` utility silently dead. */
@@ -7,29 +11,8 @@
 
 @theme {
   --color-primary: var(--primary);
-  --color-bg: var(--bg);
-  --color-surface: var(--surface);
   --color-surface2: var(--surface2);
-  --color-text: var(--text);
-  --color-muted: var(--muted);
-  --color-border: var(--border);
   --color-ring: var(--ring);
-  --color-danger: var(--danger);
-  --color-warning: var(--warning);
-  --color-info: var(--info);
-
-  --radius-sm: var(--radius-sm);
-  --radius-md: var(--radius-md);
-  --radius-lg: var(--radius-lg);
-  --radius-xl: var(--radius-xl);
-
-  --font-sans:
-    system-ui, -apple-system, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB',
-    'Microsoft YaHei', sans-serif;
-  /* No webfont is loaded: the mono face is whatever the OS already ships. */
-  --font-mono:
-    ui-monospace, 'SF Mono', 'JetBrains Mono', 'Cascadia Code', Menlo, Consolas,
-    monospace;
 
   --shadow-sm: none;
   --shadow-md: none;
@@ -37,68 +20,29 @@
   --shadow-xl: none;
 }
 
-:root {
-  color-scheme: light;
-  /* Black and white does the work; blue is the only accent, kept for links,
-     focus and "something is happening". Buttons are ink, not accent. */
-  --primary: #2563eb;
+:root,
+[data-app] {
+  /* Re-resolved under [data-app], where the app's accent applies. */
+  --primary: var(--moli-accent);
+  --ring: var(--moli-accent);
 
-  --bg: #ffffff;
-  --surface: #ffffff;
-  --surface2: #f4f4f5;
+  --bg: var(--moli-bg);
+  --surface: var(--moli-surface);
+  --surface2: var(--moli-surface2);
 
-  --text: #09090b;
-  --muted: #71717a;
+  --text: var(--moli-text);
+  --muted: var(--moli-muted);
 
-  --border: #e4e4e7;
-  --ring: #2563eb;
+  --border: var(--moli-border);
 
-  --danger: #dc2626;
-  --warning: #b45309;
-  --info: #2563eb;
-
-  --radius: 6px;
-  --radius-sm: calc(var(--radius) - 4px);
-  --radius-md: calc(var(--radius) - 2px);
-  --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) + 4px);
+  --danger: var(--moli-danger);
+  --warning: var(--moli-warning);
+  --info: var(--moli-info);
 
   /* Alpha Variants */
   --primary-a10: color-mix(in srgb, var(--primary), transparent 85%);
   --danger-a10: color-mix(in srgb, var(--danger), transparent 90%);
   --warning-a10: color-mix(in srgb, var(--warning), transparent 90%);
-}
-
-[data-theme='dark'] {
-  color-scheme: dark;
-  --primary: #60a5fa;
-  --bg: #0a0a0a;
-  --surface: #0a0a0a;
-  --surface2: #1c1c1f;
-  --text: #fafafa;
-  --muted: #a1a1aa;
-  --border: #27272a;
-  --ring: #60a5fa;
-  --danger: #f87171;
-  --warning: #fbbf24;
-  --info: #60a5fa;
-}
-
-@media (prefers-color-scheme: dark) {
-  [data-theme='system'] {
-    color-scheme: dark;
-    --primary: #60a5fa;
-    --bg: #0a0a0a;
-    --surface: #0a0a0a;
-    --surface2: #1c1c1f;
-    --text: #fafafa;
-    --muted: #a1a1aa;
-    --border: #27272a;
-    --ring: #60a5fa;
-    --danger: #f87171;
-    --warning: #fbbf24;
-    --info: #60a5fa;
-  }
 }
 
 /* Unlayered on purpose: `@import 'tailwindcss'` puts the typography plugin's

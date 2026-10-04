@@ -1,6 +1,6 @@
 # API 参考
 
-Limen 提供两类 API：
+Moli Diary 提供两类 API：
 
 - **Bearer Token API**: 用于快捷指令、脚本等外部客户端。所有端点需在 `Authorization` 请求头中携带在设置页生成的 API 令牌。
 - **Session API**: 用于 Web 前端，基于浏览器会话。不需要携带 Token。

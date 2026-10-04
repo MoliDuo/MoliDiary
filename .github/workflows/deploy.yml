@@ -24,7 +24,7 @@ jobs:
     steps:
       - uses: MoliDuo/MoliKit/actions/deploy@9b799ce70581440f1598ece62c068dd0b881b955 # v1.2.1
         with:
-          app: limen
+          app: diary
           sha: ${{ github.event.workflow_run.head_sha }}
           host-key: 'ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIGYuCUIofB2A+wuIb0aVrQgoIJH+UgVIYn0PSZtmFk+q'
           server: ${{ secrets.DEPLOY_SERVER }}

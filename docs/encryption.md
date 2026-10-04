@@ -77,7 +77,7 @@
 ### 离线解密示例
 
 ```js
-// LIMEN_PASSWORD='主密码' node decrypt.mjs —— 还需要 DATABASE_URL
+// DIARY_PASSWORD='主密码' node decrypt.mjs —— 还需要 DATABASE_URL
 import { createDecipheriv, hkdfSync, scryptSync } from 'node:crypto';
 import pg from 'pg';
 
@@ -101,7 +101,7 @@ let dataKey;
 for (const slot of await sql`select * from encryption_key_slots where kind = 'password'`) {
   const { N, r, p } = JSON.parse(slot.kdf_params);
   const kek = scryptSync(
-    process.env.LIMEN_PASSWORD.normalize('NFC'),
+    process.env.DIARY_PASSWORD.normalize('NFC'),
     Buffer.from(slot.salt, 'base64url'),
     32,
     { N, r, p, maxmem: 256 * N * r },
@@ -144,7 +144,7 @@ npm run crypto -- revoke-sessions   # 只让所有设备退出登录
 全新部署的数据库还没有主密码，先设置一个：
 
 ```bash
-docker compose --env-file .tag exec limen node tools/crypto.mjs init
+docker compose --env-file .tag exec diary node tools/crypto.mjs init
 ```
 
 不用 Docker 时在项目目录执行 `npm run crypto -- init`。

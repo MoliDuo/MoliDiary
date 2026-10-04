@@ -50,7 +50,7 @@ export async function drainAIWorker(graceMs = SHUTDOWN_GRACE_MS) {
 }
 
 const globalForTasks = globalThis as typeof globalThis & {
-  __limenBackgroundTasks?: NodeJS.Timeout;
+  __diaryBackgroundTasks?: NodeJS.Timeout;
 };
 
 /**
@@ -58,7 +58,7 @@ const globalForTasks = globalThis as typeof globalThis & {
  * last process took with it, then sweeps expired rows now and every hour.
  */
 export function startBackgroundTasks() {
-  if (globalForTasks.__limenBackgroundTasks) return;
+  if (globalForTasks.__diaryBackgroundTasks) return;
 
   const sweep = () => runTasks(housekeepingTasks);
   void runTasks([
@@ -67,7 +67,7 @@ export function startBackgroundTasks() {
 
   const timer = setInterval(sweep, HOUSEKEEPING_INTERVAL_MS);
   timer.unref();
-  globalForTasks.__limenBackgroundTasks = timer;
+  globalForTasks.__diaryBackgroundTasks = timer;
 
   // `next start` would exit at once on SIGTERM; the image sets
   // NEXT_MANUAL_SIG_HANDLE so shutdown is ours to do.

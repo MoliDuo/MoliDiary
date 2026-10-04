@@ -1,12 +1,12 @@
-# Template for the server's /data/apps/limen/docker-compose.yml (Moli standard 005).
+# Template for the server's /data/apps/diary/docker-compose.yml (Moli standard 005).
 # The administrator keeps the real file on the server; the deploy only rewrites .tag, which
 # holds APP_TAG=<commit sha>. Start with: docker compose --env-file .tag up -d
 # Secrets and URLs come from .env through env_file, not through ${...}: --env-file replaces the
 # default .env for interpolation.
 services:
-  limen:
-    image: moli-limen:${APP_TAG}
-    container_name: limen
+  diary:
+    image: moli-diary:${APP_TAG}
+    container_name: diary
     init: true
     restart: unless-stopped
     # On SIGTERM the app gives AI jobs in flight 20 seconds to finish.
@@ -33,23 +33,23 @@ services:
     labels:
       - traefik.enable=true
       - traefik.docker.network=server-internal-net
-      - traefik.http.routers.limen.rule=Host(`diary.xiangyu.pro`)
-      - traefik.http.routers.limen.entrypoints=websecure
-      - traefik.http.services.limen.loadbalancer.server.port=3000
+      - traefik.http.routers.diary.rule=Host(`diary.xiangyu.pro`)
+      - traefik.http.routers.diary.entrypoints=websecure
+      - traefik.http.services.diary.loadbalancer.server.port=3000
 
   postgres:
     image: postgres:18
-    container_name: limen-postgres
+    container_name: diary-postgres
     restart: unless-stopped
     env_file: .env # POSTGRES_PASSWORD
     environment:
       TZ: Asia/Kuala_Lumpur
-      POSTGRES_DB: limen
-      POSTGRES_USER: limen
+      POSTGRES_DB: moli-diary-db
+      POSTGRES_USER: diary
     volumes:
       - ./data/postgres:/var/lib/postgresql
     healthcheck:
-      test: ['CMD-SHELL', 'pg_isready -U limen -d limen']
+      test: ['CMD-SHELL', 'pg_isready -U diary -d moli-diary-db']
       interval: 5s
       timeout: 5s
       retries: 20
@@ -60,15 +60,15 @@ services:
   # Copy ./backups off this server as well (standard 005, 5.7.4).
   backup:
     image: postgres:18
-    container_name: limen-backup
+    container_name: diary-backup
     restart: unless-stopped
     user: '1000:1000'
     env_file: .env
     environment:
       TZ: Asia/Kuala_Lumpur
       PGHOST: postgres
-      PGUSER: limen
-      PGDATABASE: limen
+      PGUSER: diary
+      PGDATABASE: moli-diary-db
     entrypoint: ['sh', '/backup.sh']
     volumes:
       - ./backup.sh:/backup.sh:ro

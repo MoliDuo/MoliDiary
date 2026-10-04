@@ -37,3 +37,7 @@ drizzle/
 
 # Logs
 *.log
+
+# Copies of MoliSpec design/dist, never edited here
+src/app/moli-tokens.css
+src/app/moli-tailwind.css

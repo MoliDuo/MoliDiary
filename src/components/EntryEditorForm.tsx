@@ -38,7 +38,7 @@ import { cn } from '@/lib/utils';
 import { formatTimestampInTimeZone } from '@/lib/format';
 
 const DRAFT_SAVE_DELAY_MS = 500;
-const DRAFT_STORAGE_ERROR = '__limen_draft_storage_error__';
+const DRAFT_STORAGE_ERROR = '__diary_draft_storage_error__';
 
 export function EntryEditorForm({
   mode,

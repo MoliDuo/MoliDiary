@@ -131,7 +131,7 @@ void main()
   })
   .finally(async () => {
     // The pool keeps the event loop alive; close it if a command opened one.
-    const pool = (globalThis as { __limenPool?: { end(): Promise<void> } })
-      .__limenPool;
+    const pool = (globalThis as { __diaryPool?: { end(): Promise<void> } })
+      .__diaryPool;
     await pool?.end();
   });
