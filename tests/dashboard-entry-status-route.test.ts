@@ -55,7 +55,6 @@ test('batch status endpoint authenticates and validates ID lists', async () => {
     const unauthorized = createBatchEntryStatusHandler({
       authorize: () => false,
       database: fixture.db,
-      recoverPending: async () => {},
     });
     assert.equal(
       (
@@ -72,7 +71,6 @@ test('batch status endpoint authenticates and validates ID lists', async () => {
     const POST = createBatchEntryStatusHandler({
       authorize: () => true,
       database: fixture.db,
-      recoverPending: async () => {},
     });
     for (const body of [
       'not-json',
@@ -107,7 +105,6 @@ test('batch status endpoint returns requested fields and omits missing IDs', asy
     const POST = createBatchEntryStatusHandler({
       authorize: () => true,
       database: fixture.db,
-      recoverPending: async () => {},
     });
     const response = await POST(
       new Request('http://localhost/status', {

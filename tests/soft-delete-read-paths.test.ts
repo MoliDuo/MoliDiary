@@ -96,7 +96,6 @@ test('ai polling stops following trashed entries', async () => {
       const POST = createBatchEntryStatusHandler({
         authorize: () => true,
         database: db,
-        recoverPending: async () => {},
       });
       const response = await POST(
         new Request('http://localhost/status', {
@@ -113,32 +112,6 @@ test('ai polling stops following trashed entries', async () => {
       );
     },
     { aiStatus: 'pending' },
-  );
-});
-
-test('stale-pending recovery leaves trashed entries alone', async () => {
-  await withTrashedEntry(
-    async (db) => {
-      const { recoverStalePendingEntries } =
-        await import('@/lib/ai/stale-pending');
-      // Make the visible entry stale too, so the assertion is about the
-      // trashed one being skipped rather than about nothing being stale.
-      await db
-        .update(entries)
-        .set({
-          aiStatus: 'pending',
-          updatedAt: new Date('2026-08-01T00:00:00.000Z'),
-        })
-        .where(eq(entries.id, 'visible'));
-      const recovered = await recoverStalePendingEntries(
-        db,
-        new Date('2026-09-20T00:00:00.000Z'),
-      );
-      // Only the visible one; failing a trashed entry would churn updated_at
-      // and reorder the recycle bin for no reason.
-      assert.deepEqual(recovered, [{ id: 'visible' }]);
-    },
-    { aiStatus: 'pending', updatedAt: new Date('2026-08-01T00:00:00.000Z') },
   );
 });
 

@@ -14,8 +14,6 @@ import {
   EntryTitleEditor,
 } from '@/components/EntryMetadataEditor';
 import { PendingAIRefresh } from '@/components/PendingAIRefresh';
-import { recoverStalePendingEntriesThrottled } from '@/lib/ai/stale-pending';
-import { after } from 'next/server';
 
 export function buildEntryDetailViewModel(
   entry: {
@@ -62,9 +60,6 @@ export default async function EntryDetailPage({
 }) {
   const { id } = await params;
 
-  // A write does not belong in front of a page render; PendingAIRefresh polls
-  // the status route, which still recovers synchronously.
-  after(() => recoverStalePendingEntriesThrottled());
   const entry = await getEntryById(id);
 
   if (!entry) {

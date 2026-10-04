@@ -66,8 +66,8 @@ export function getAIWorker() {
 }
 
 /**
- * Queues a job on behalf of the current request. Call it from the request
- * itself, not from after(): that is where the credential can still be read.
+ * Queues a job on behalf of the current request. Call it while handling the
+ * request, since that is the only time its credential can be read.
  */
 export async function scheduleAIJob(
   database: AppDatabase,

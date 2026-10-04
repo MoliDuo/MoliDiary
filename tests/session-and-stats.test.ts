@@ -8,7 +8,6 @@ import {
 } from '@/lib/auth/session';
 import { computeCurrentStreak, computeWritingStats } from '@/lib/stats';
 import { loadWritingStats } from '@/lib/stats-data';
-import { shouldRunRecovery } from '@/lib/ai/stale-pending';
 import { formatTimeForFilename } from '@/lib/format';
 import { createTestDb } from './helpers/test-db';
 import { seedEntry } from './helpers/test-entries';
@@ -140,40 +139,6 @@ test('stats come from SQL aggregates and skip trashed entries', async () => {
   } finally {
     await fixture.cleanup();
   }
-});
-
-test('stale-pending recovery is throttled on read paths', () => {
-  const now = 1_000_000;
-  assert.equal(shouldRunRecovery(now, 0), true);
-  assert.equal(shouldRunRecovery(now, now - 59_000), false);
-  assert.equal(shouldRunRecovery(now, now - 61_000), true);
-});
-
-test('page reads schedule recovery instead of awaiting it', () => {
-  // A write in front of the first byte costs a Neon round-trip on a driver
-  // with no connection reuse.
-  for (const [file, pattern] of [
-    ['src/lib/dashboard-data.ts', /scheduleRecovery\(database\)/],
-    [
-      'src/app/(dashboard)/entries/[id]/page.tsx',
-      /after\(\(\) => recoverStalePendingEntriesThrottled\(\)\)/,
-    ],
-  ] as const) {
-    const source = readFileSync(new URL(`../${file}`, import.meta.url), 'utf8');
-    assert.match(source, pattern, file);
-    assert.doesNotMatch(source, /await recoverStalePendingEntries\(/, file);
-  }
-
-  // The polling routes still recover synchronously; that is where freshness
-  // actually matters.
-  const statusRoute = readFileSync(
-    new URL(
-      '../src/app/api/dashboard/entries/[id]/status/route.ts',
-      import.meta.url,
-    ),
-    'utf8',
-  );
-  assert.match(statusRoute, /await recoverStalePendingEntries\(\)/);
 });
 
 test('export filenames carry the time in the saved zone', () => {
