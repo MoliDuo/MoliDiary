@@ -56,7 +56,7 @@ export default async function DashboardPage({
           ) : (
             <Link
               href={newEntryPath()}
-              className="mt-5 inline-flex h-9 items-center justify-center rounded-md bg-text px-4 text-sm font-medium text-bg transition-opacity hover:opacity-85"
+              className="mt-5 inline-flex h-9 items-center justify-center rounded-md bg-primary px-4 text-sm font-medium text-accent-fg transition-opacity hover:opacity-85"
             >
               {messages.dashboard.createFirstEntry}
             </Link>

@@ -56,11 +56,11 @@ export class AIWorker {
 // Route handlers, server actions and instrumentation may each load their own
 // copy of this module; the queue has to be shared between them.
 const globalForWorker = globalThis as typeof globalThis & {
-  __limenAIWorker?: AIWorker;
+  __diaryAIWorker?: AIWorker;
 };
 
 export function getAIWorker() {
-  return (globalForWorker.__limenAIWorker ??= new AIWorker(
+  return (globalForWorker.__diaryAIWorker ??= new AIWorker(
     Number(process.env.AI_CONCURRENCY) || 2,
   ));
 }

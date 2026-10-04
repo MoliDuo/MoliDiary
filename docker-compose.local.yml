@@ -4,9 +4,9 @@ services:
   postgres:
     image: postgres:18
     environment:
-      POSTGRES_USER: limen
-      POSTGRES_PASSWORD: limen
-      POSTGRES_DB: limen
+      POSTGRES_USER: diary
+      POSTGRES_PASSWORD: diary
+      POSTGRES_DB: moli-diary-db
     ports:
       - '127.0.0.1:5432:5432'
     volumes:

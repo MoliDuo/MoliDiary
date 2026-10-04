@@ -30,14 +30,20 @@ test('a root layout crash still renders something readable', () => {
   // globals.css is not loaded for global-error, so Tailwind classes would be
   // inert and the page would render unstyled.
   assert.doesNotMatch(source, /className=/);
+  // Colors must come from the design tokens, never literals (standard 11.3.4).
+  assert.doesNotMatch(source, /#[0-9a-fA-F]{3,8}\b/);
 });
 
 test('installable-app assets are reachable without a session', () => {
   for (const asset of [
     '/manifest.webmanifest',
     '/icon.svg',
+    '/icon.png',
+    '/icon-192.png',
+    '/maskable-512.png',
     '/apple-icon.png',
     '/favicon.ico',
+    '/favicon.svg',
     '/robots.txt',
   ]) {
     assert.equal(shouldBypassProxy(asset), true, asset);
@@ -49,12 +55,23 @@ test('installable-app assets are reachable without a session', () => {
 test('the manifest and icons exist for add-to-home-screen', () => {
   for (const file of [
     'src/app/manifest.ts',
-    'src/app/icon.svg',
-    'src/app/apple-icon.png',
+    'public/icon.svg',
+    'public/favicon.svg',
+    'public/favicon.ico',
+    'public/icon.png',
+    'public/icon-192.png',
+    'public/maskable-512.png',
+    'public/apple-icon.png',
   ]) {
     assert.ok(existsSync(path(file)), `${file} is missing`);
   }
   const manifest = read('src/app/manifest.ts');
+  for (const [, src] of manifest.matchAll(/src: '(\/[^']+)'/g)) {
+    assert.ok(
+      existsSync(path(`public${src}`)),
+      `manifest icon ${src} is missing`,
+    );
+  }
   assert.match(manifest, /display: 'standalone'/);
   // The manifest prerenders at build time, where no database is reachable, and
   // it is served unauthenticated. Reading settings here breaks `next build`.
@@ -64,7 +81,7 @@ test('the manifest and icons exist for add-to-home-screen', () => {
 test('pages carry their own browser title', async () => {
   assert.match(
     read('src/app/layout.tsx'),
-    /title: \{ default: 'Limen', template: '%s · Limen' \}/,
+    /title: \{ default: 'Moli Diary', template: '%s · Moli Diary' \}/,
   );
   assert.match(
     read('src/app/(dashboard)/entries/[id]/page.tsx'),

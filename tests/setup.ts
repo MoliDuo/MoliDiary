@@ -4,7 +4,8 @@ import { setDataKeySource } from '@/lib/crypto/cipher';
 import { testDataKey } from './helpers/test-password';
 
 // Does not override a caller-provided DATABASE_URL.
-process.env.DATABASE_URL ??= 'postgresql://test:test@localhost:5432/limen_test';
+process.env.DATABASE_URL ??=
+  'postgresql://test:test@localhost:5432/moli_diary_test';
 
 // Every test database mints its own key slot; production-strength scrypt
 // would add a third of a second to each one. Slots record their parameters,

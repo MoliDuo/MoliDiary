@@ -7,8 +7,8 @@ import { LIGHT_BACKGROUND } from '@/lib/theme';
 // generateViewport in src/app/layout.tsx instead.
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: 'Limen',
-    short_name: 'Limen',
+    name: 'Moli Diary',
+    short_name: 'Moli Diary',
     description: '个人日记',
     start_url: '/',
     display: 'standalone',
@@ -17,7 +17,14 @@ export default function manifest(): MetadataRoute.Manifest {
     background_color: LIGHT_BACKGROUND,
     theme_color: LIGHT_BACKGROUND,
     icons: [
-      { src: '/icon.svg', type: 'image/svg+xml', sizes: 'any' },
+      { src: '/icon-192.png', type: 'image/png', sizes: '192x192' },
+      { src: '/icon.png', type: 'image/png', sizes: '512x512' },
+      {
+        src: '/maskable-512.png',
+        type: 'image/png',
+        sizes: '512x512',
+        purpose: 'maskable',
+      },
       { src: '/apple-icon.png', type: 'image/png', sizes: '180x180' },
     ],
   };

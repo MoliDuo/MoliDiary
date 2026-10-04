@@ -14,7 +14,7 @@ export type AppDatabase = PgDatabase<PgQueryResultHKT, typeof schema>;
 // module graphs, and dev hot reloads re-evaluate this file. Keeping the pool
 // on globalThis gives them all one set of connections.
 const globalForPool = globalThis as typeof globalThis & {
-  __limenPool?: Pool;
+  __diaryPool?: Pool;
 };
 
 function createPool() {
@@ -31,5 +31,5 @@ function createPool() {
   return pool;
 }
 
-export const pool = (globalForPool.__limenPool ??= createPool());
+export const pool = (globalForPool.__diaryPool ??= createPool());
 export const db = drizzle(pool, { schema });

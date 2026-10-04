@@ -132,7 +132,7 @@ export function SettingsForm({
       link.download =
         response.headers
           .get('content-disposition')
-          ?.match(/filename="([^"]+)"/)?.[1] ?? 'limen-export';
+          ?.match(/filename="([^"]+)"/)?.[1] ?? 'diary-export';
       link.click();
       URL.revokeObjectURL(url);
     } catch {

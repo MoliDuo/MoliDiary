@@ -19,10 +19,10 @@ test('entry drafts are versioned and preserve content, date, and save time', () 
       savedAt: savedAt.toISOString(),
     },
   );
-  assert.equal(entryDraftKey('create'), 'limen:entry-draft:new');
+  assert.equal(entryDraftKey('create'), 'diary:entry-draft:new');
   assert.equal(
     entryDraftKey('edit', 'entry-1'),
-    'limen:entry-draft:edit:entry-1',
+    'diary:entry-draft:edit:entry-1',
   );
   assert.equal(
     parseEntryDraft(serializeEntryDraft('正文仍要保留', '', savedAt))?.content,

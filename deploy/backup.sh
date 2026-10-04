@@ -9,11 +9,11 @@ keep_days=${BACKUP_KEEP_DAYS:-14}
 
 while true; do
   stamp=$(date -u +%Y%m%dT%H%M%SZ)
-  target="/backups/limen-daily-$stamp.dump"
+  target="/backups/diary-daily-$stamp.dump"
   if pg_dump --format=custom --no-owner --no-privileges --file="$target.partial"; then
     mv "$target.partial" "$target"
     echo "backup written: $target"
-    find /backups -name 'limen-daily-*.dump' -mtime "+$keep_days" -delete
+    find /backups -name 'diary-daily-*.dump' -mtime "+$keep_days" -delete
   else
     rm -f "$target.partial"
     echo "backup failed" >&2

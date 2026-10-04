@@ -1,8 +1,8 @@
 import type { Theme } from '@/lib/settings-core';
 
-// Keep in sync with the `--bg` custom properties in src/app/globals.css.
+// Keep in sync with the `--moli-bg` tokens in src/app/moli-tokens.css.
 // tests/theme-shell.test.mjs asserts both sides still agree.
-export const LIGHT_BACKGROUND = '#ffffff';
+export const LIGHT_BACKGROUND = '#fafafa';
 export const DARK_BACKGROUND = '#0a0a0a';
 
 export type ThemeColor = { color: string; media?: string };

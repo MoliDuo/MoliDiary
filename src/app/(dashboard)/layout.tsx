@@ -31,7 +31,7 @@ export default async function DashboardLayout({
               href={dashboardPath()}
               className="group flex h-10 shrink-0 items-center font-mono text-[15px] font-semibold tracking-tight text-text"
             >
-              <span>limen</span>
+              <span>diary</span>
               <span className="text-primary transition-opacity group-hover:opacity-0">
                 _
               </span>

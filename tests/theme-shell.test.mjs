@@ -43,12 +43,12 @@ test('the dark variant targets data-theme, not a class that is never applied', (
 test('theme background constants stay in sync with the stylesheet', async () => {
   const { LIGHT_BACKGROUND, DARK_BACKGROUND, themeBackgroundColor } =
     await import('../src/lib/theme.ts');
-  const css = read('src/app/globals.css');
+  const css = read('src/app/moli-tokens.css');
 
   // :root is the light theme; [data-theme='dark'] and the system media query
   // share the dark value.
-  assert.match(css, new RegExp(`--bg: ${LIGHT_BACKGROUND};`));
-  assert.match(css, new RegExp(`--bg: ${DARK_BACKGROUND};`));
+  assert.match(css, new RegExp(`--moli-bg: ${LIGHT_BACKGROUND};`));
+  assert.match(css, new RegExp(`--moli-bg: ${DARK_BACKGROUND};`));
 
   assert.deepEqual(themeBackgroundColor('light'), {
     color: LIGHT_BACKGROUND,

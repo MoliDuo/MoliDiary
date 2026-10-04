@@ -101,7 +101,7 @@ export function createExportRouteHandler({
           : 'application/json; charset=utf-8';
       // Includes the time: two exports on the same day used to overwrite.
       const stamp = `${formatDateInTimeZone(exportedAt, settings.timeZone)}-${formatTimeForFilename(exportedAt, settings.timeZone)}`;
-      const filename = `limen-export-${stamp}.${extension}`;
+      const filename = `diary-export-${stamp}.${extension}`;
 
       return new Response(createTextStream(chunks), {
         headers: {

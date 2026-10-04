@@ -9,8 +9,8 @@ compose() { docker compose --env-file .tag "$@"; }
 compose up -d --wait postgres
 
 mkdir -p backups
-dump="backups/limen-predeploy-$(date +%Y%m%d-%H%M%S).dump"
-compose exec -T postgres pg_dump -U limen -Fc limen > "$dump"
+dump="backups/diary-predeploy-$(date +%Y%m%d-%H%M%S).dump"
+compose exec -T postgres pg_dump -U diary -Fc moli-diary-db > "$dump"
 echo "[pre-deploy] database dumped to $dump"
 
-ls -1t backups/limen-predeploy-*.dump | tail -n +6 | xargs -r rm --
+ls -1t backups/diary-predeploy-*.dump | tail -n +6 | xargs -r rm --

@@ -6,7 +6,7 @@
  * months, that drops you at the top. This records both numbers per filter and
  * replays them on mount.
  */
-const STORAGE_PREFIX = 'limen:timeline:';
+const STORAGE_PREFIX = 'diary:timeline:';
 
 export type TimelinePosition = { size: number; offset: number };
 

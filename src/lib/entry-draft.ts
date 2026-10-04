@@ -1,7 +1,7 @@
 import { ENTRY_CONTENT_MAX_LENGTH, parseEntryDate } from '@/lib/validation';
 
 const DRAFT_VERSION = 1;
-const DRAFT_PREFIX = 'limen:entry-draft:';
+const DRAFT_PREFIX = 'diary:entry-draft:';
 
 export type EntryDraft = {
   content: string;

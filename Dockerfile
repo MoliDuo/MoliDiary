@@ -9,7 +9,7 @@ FROM base AS builder
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 # next build only imports modules; it never opens a connection.
-ENV DATABASE_URL=postgresql://build:build@localhost:5432/limen
+ENV DATABASE_URL=postgresql://build:build@localhost:5432/moli-diary-db
 ENV NEXT_TELEMETRY_DISABLED=1
 RUN npm run build && npm run build:tools
 
@@ -24,6 +24,7 @@ ENV NEXT_MANUAL_SIG_HANDLE=true
 
 COPY --from=builder --chown=node:node /app/.next/standalone ./
 COPY --from=builder --chown=node:node /app/.next/static ./.next/static
+COPY --from=builder --chown=node:node /app/public ./public
 COPY --from=builder --chown=node:node /app/drizzle ./drizzle
 # Migration and key-management CLIs, bundled so the image needs no tsx.
 COPY --from=builder --chown=node:node /app/dist/tools ./tools

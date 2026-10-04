@@ -1,12 +1,15 @@
 'use client';
 
+import './moli-tokens.css';
+
 // global-error replaces the root layout, so globals.css is not loaded here and
-// Tailwind classes would not apply. Inline styles keep this readable even when
-// the failure is in the stylesheet or the layout itself.
+// Tailwind classes would not apply. Inline styles on the design tokens alone keep
+// this readable even when the failure is in the stylesheet or the layout itself.
 export default function GlobalError({ reset }: { reset: () => void }) {
   return (
     <html lang="zh-CN">
       <body
+        data-app="diary"
         style={{
           margin: 0,
           minHeight: '100vh',
@@ -15,12 +18,12 @@ export default function GlobalError({ reset }: { reset: () => void }) {
           alignItems: 'center',
           justifyContent: 'center',
           gap: '1rem',
-          fontFamily: 'system-ui, sans-serif',
-          background: '#ffffff',
-          color: '#09090b',
+          fontFamily: 'var(--moli-font-sans)',
+          background: 'var(--moli-bg)',
+          color: 'var(--moli-text)',
         }}
       >
-        <p style={{ fontSize: '0.875rem', color: '#71717a' }}>
+        <p style={{ fontSize: '0.875rem', color: 'var(--moli-muted)' }}>
           页面出错了，请重试
         </p>
         <button
@@ -29,11 +32,11 @@ export default function GlobalError({ reset }: { reset: () => void }) {
           style={{
             height: '2.5rem',
             padding: '0 1rem',
-            borderRadius: '4px',
+            borderRadius: 'var(--moli-radius-sm)',
             border: 'none',
             cursor: 'pointer',
-            background: '#09090b',
-            color: '#ffffff',
+            background: 'var(--moli-accent)',
+            color: 'var(--moli-accent-fg)',
             fontSize: '0.875rem',
           }}
         >

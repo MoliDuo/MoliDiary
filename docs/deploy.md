@@ -1,6 +1,6 @@
 # 部署
 
-Limen 部署在 Moli 服务器上的 Docker 里,经 Traefik 和 Cloudflare Tunnel 对外,地址 <https://diary.xiangyu.pro>。推送到 `main` 后,`CI` 通过,`deploy` 工作流自动构建镜像并部署(Moli 规范 005,和 Cashier 一样)。
+Moli Diary 部署在 Moli 服务器上的 Docker 里,经 Traefik 和 Cloudflare Tunnel 对外,地址 <https://diary.xiangyu.pro>。推送到 `main` 后,`CI` 通过,`deploy` 工作流自动构建镜像并部署(Moli 规范 005,和 Cashier 一样)。
 
 进程内有 AI 任务队列和定时清理,**只能运行一个实例**。
 
@@ -10,12 +10,12 @@ Limen 部署在 Moli 服务器上的 Docker 里,经 Traefik 和 Cloudflare Tunne
 
 **GitHub(组织级密钥,本仓库只读取)**:`DEPLOY_SSH_KEY`、`DEPLOY_TAILSCALE_CLIENT_ID`、`DEPLOY_TAILSCALE_CLIENT_SECRET`、`DEPLOY_SERVER`、`DEPLOY_SERVER_USER`,用途见规范 005 的 5.3.4。
 
-**服务器上 `/data/apps/limen/.env`(权限 600,不进仓库)**,模板是 [deploy/env.example](../deploy/env.example):
+**服务器上 `/data/apps/diary/.env`(权限 600,不进仓库)**,模板是 [deploy/env.example](../deploy/env.example):
 
 | 变量                                                  | 必须 | 说明                                                                                                                             |
 | ----------------------------------------------------- | ---- | -------------------------------------------------------------------------------------------------------------------------------- |
 | `POSTGRES_PASSWORD`                                   | 是   | Postgres 的密码,只用字母和数字(会拼进 `DATABASE_URL`)。`openssl rand -hex 24`                                                    |
-| `DATABASE_URL`                                        | 是   | `postgresql://limen:<密码>@postgres:5432/limen`                                                                                  |
+| `DATABASE_URL`                                        | 是   | `postgresql://diary:<密码>@postgres:5432/moli-diary-db`                                                                          |
 | `AI_API_KEY`                                          | 是   | OpenAI 兼容服务的 Key                                                                                                            |
 | `AI_BASE_URL` / `AI_MODEL`                            | 否   | 默认 `https://api.openai.com/v1` / `gpt-4o-mini`                                                                                 |
 | `TRUST_PROXY`                                         | 否   | 在 Traefik 和 Tunnel 后面设为 `true`。登录限流取 `X-Forwarded-For` 里**从右往左数的第一个公网地址**;不设则所有失败共用一个限流桶 |
@@ -32,26 +32,26 @@ Limen 部署在 Moli 服务器上的 Docker 里,经 Traefik 和 Cloudflare Tunne
 1. 建应用目录,放入 [deploy/](../deploy) 里的文件:
 
    ```bash
-   mkdir -p /data/apps/limen/backups && cd /data/apps/limen
+   mkdir -p /data/apps/diary/backups && cd /data/apps/diary
    # 从仓库复制 docker-compose.yml、backup.sh、migrate.cmd、pre-deploy.sh,并 chmod +x pre-deploy.sh
    cp env.example .env && chmod 600 .env   # 把占位值换成真实值
    echo APP_TAG=init > .tag
    ```
 
-2. 先把数据库起来(应用镜像此时还不存在,不要启动 `limen`):
+2. 先把数据库起来(应用镜像此时还不存在,不要启动 `diary`):
 
    ```bash
    docker compose --env-file .tag up -d --wait postgres
    ```
 
 3. 如果有旧数据,**现在**按第 8 节恢复进来;全新部署则跳过。
-4. 在 `/data/apps/deploy/apps` 里加一行 `limen`,登记这个应用。
+4. 在 `/data/apps/deploy/apps` 里加一行 `diary`,登记这个应用。
 5. 公开域名:`diary.xiangyu.pro` 需要在 Tunnel 里加(和 `cashier.xiangyu.pro` 同样的方式)。**新增公开域名需要用户确认**(规范 005 的 5.2.2)。Traefik 的通配证书已覆盖这个域名。
 6. 触发部署(见第 3 节)。第一次部署会先执行 `pre-deploy.sh` 备份数据库,再迁移,再启动。
 7. 全新数据库设置主密码(至少 12 位,存进密码管理器);**从旧库迁来的不要做这一步**:
 
    ```bash
-   docker compose --env-file .tag exec limen node tools/crypto.mjs init
+   docker compose --env-file .tag exec diary node tools/crypto.mjs init
    ```
 
 8. 登录后在 **设置 → API 令牌** 里为每个外部客户端(如 iOS 快捷指令)生成令牌。
@@ -78,14 +78,14 @@ Limen 部署在 Moli 服务器上的 Docker 里,经 Traefik 和 Cloudflare Tunne
 部署失败时脚本自动回到上一个版本。要手动回到服务器上已有的旧镜像(保留最近 5 个):
 
 ```bash
-printf '%s %s rollback\n' limen <40 位提交哈希> | /data/apps/deploy/deploy-app
+printf '%s %s rollback\n' diary <40 位提交哈希> | /data/apps/deploy/deploy-app
 ```
 
-数据库不做反向迁移。迁移前的备份在 `/data/apps/limen/backups/limen-predeploy-*.dump`(最近 5 份),只有迁移本身损坏了数据时才用它恢复:
+数据库不做反向迁移。迁移前的备份在 `/data/apps/diary/backups/diary-predeploy-*.dump`(最近 5 份),只有迁移本身损坏了数据时才用它恢复:
 
 ```bash
-cd /data/apps/limen
-docker compose --env-file .tag exec -T postgres pg_restore -U limen -d limen --clean --if-exists --no-owner < backups/<文件名>.dump
+cd /data/apps/diary
+docker compose --env-file .tag exec -T postgres pg_restore -U diary -d moli-diary-db --clean --if-exists --no-owner < backups/<文件名>.dump
 ```
 
 ## 5. 上线后的验证
@@ -102,7 +102,7 @@ docker compose --env-file .tag exec -T postgres pg_restore -U limen -d limen --c
      -d '{"content":"测试条目内容"}'
    ```
 
-6. `docker restart limen` 后仍保持登录。
+6. `docker restart diary` 后仍保持登录。
 
 ## 6. 常见故障
 
@@ -111,10 +111,10 @@ docker compose --env-file .tag exec -T postgres pg_restore -U limen -d limen --c
 | `deploy` 报"没有登记"                | 应用还没登记到允许列表(第 2 节第 4 步)。                                                                 |
 | `deploy` 报"缺少 docker-compose.yml" | 应用目录没建好(第 2 节第 1 步)。                                                                         |
 | 迁移失败,部署回滚                    | 看部署日志里的迁移输出;数据库在失败时保持原样。修好迁移后重新推送。                                      |
-| `/healthz` 返回 503                  | 数据库连不上:看 `docker logs limen-postgres`,核对 `.env` 里 `DATABASE_URL` 和 `POSTGRES_PASSWORD` 一致。 |
+| `/healthz` 返回 503                  | 数据库连不上:看 `docker logs diary-postgres`,核对 `.env` 里 `DATABASE_URL` 和 `POSTGRES_PASSWORD` 一致。 |
 | 登录后回到登录页                     | 会话 cookie 要求 HTTPS:确认访问的是 `https://`,并且经过 Traefik 的 `websecure`。                         |
 | 登录一直提示尝试过多                 | 没设 `TRUST_PROXY=true`,所有失败共用一个桶;或来源 IP 被判成同一个地址。                                  |
-| 条目一直是"处理中"后变成失败         | 看 `docker logs limen` 里的 AI 报错(Key、地址、超时);修好后在界面里重新整理。                            |
+| 条目一直是"处理中"后变成失败         | 看 `docker logs diary` 里的 AI 报错(Key、地址、超时);修好后在界面里重新整理。                            |
 
 ## 7. 本地开发
 
@@ -140,15 +140,15 @@ npm run dev
    export NEON_URL='postgresql://…?sslmode=require'
    docker run --rm postgres:18 pg_dump "$NEON_URL" --format=custom --no-owner --no-privileges \
      --schema=public --schema=drizzle > neon.dump
-   cd /data/apps/limen
-   docker compose --env-file .tag exec -T postgres pg_restore -U limen -d limen --no-owner --no-privileges < neon.dump
+   cd /data/apps/diary
+   docker compose --env-file .tag exec -T postgres pg_restore -U diary -d moli-diary-db --no-owner --no-privileges < neon.dump
    ```
 
    `drizzle` schema 里是迁移记录,带过去后部署时的迁移就是空操作。恢复时会提示一条 `schema "public" already exists`,这是正常的,其余应无报错。
 
 4. 完成第 2 节第 4–6 步触发部署,然后核对:
    - 各表行数与 Neon 一致;
-   - `docker compose --env-file .tag exec limen node tools/crypto.mjs status` 能看到密码槽;
+   - `docker compose --env-file .tag exec diary node tools/crypto.mjs status` 能看到密码槽;
    - 用原主密码登录,打开几篇旧日记、搜索一次、导出一份,确认能解密;
    - 用旧的 API 令牌调用一次 API。
 
@@ -159,15 +159,15 @@ npm run dev
 
 两类:
 
-- **部署前备份**:`pre-deploy.sh` 在每次迁移前导出一份,保留最近 5 份(`limen-predeploy-*.dump`)。
-- **每日备份**:`backup` 服务默认每 24 小时一份,保留 14 天(`limen-daily-*.dump`)。
+- **部署前备份**:`pre-deploy.sh` 在每次迁移前导出一份,保留最近 5 份(`diary-predeploy-*.dump`)。
+- **每日备份**:`backup` 服务默认每 24 小时一份,保留 14 天(`diary-daily-*.dump`)。
 
 备份里是密文:**主密码丢了,备份也解不开**。至少再把一份放到服务器之外,并做恢复演练(恢复到临时库,核对行数):
 
 ```bash
-docker run --rm -d --name limen-restore-test -e POSTGRES_PASSWORD=x postgres:18
+docker run --rm -d --name diary-restore-test -e POSTGRES_PASSWORD=x postgres:18
 # 等它起来后:
-docker exec -i limen-restore-test pg_restore -U postgres -d postgres --no-owner < backups/limen-daily-xxxx.dump
+docker exec -i diary-restore-test pg_restore -U postgres -d postgres --no-owner < backups/diary-daily-xxxx.dump
 ```
 
 设置页的导出得到的是解密后的 Markdown 或 JSON,可作为另一份、可读的备份。
@@ -176,7 +176,7 @@ docker exec -i limen-restore-test pg_restore -U postgres -d postgres --no-owner 
 
 - **主密码**:在 **设置 → 主密码** 里修改。其他设备会被退出,API 令牌不受影响。详见 [encryption.md](encryption.md#更换主密码)。
 - **API 令牌**:在 **设置 → API 令牌** 里生成新令牌、更新客户端,再撤销旧令牌。
-- **让所有设备退出**:`docker compose --env-file .tag exec limen node tools/crypto.mjs revoke-sessions`。
+- **让所有设备退出**:`docker compose --env-file .tag exec diary node tools/crypto.mjs revoke-sessions`。
 
 ## 11. 安全注意事项
 
