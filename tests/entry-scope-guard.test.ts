@@ -60,14 +60,3 @@ test('the guard actually matches an unscoped query', () => {
   const good = `const rows = await db.select().from(entries).where(activeEntries(eq(entries.id, id)));`;
   assert.equal(USES_SCOPE.test(good), true);
 });
-
-test('no code calls .transaction(), which throws at runtime on neon-http', () => {
-  // AppDatabase's type allows it and PGlite honours it, so this would pass
-  // every test and fail only in production.
-  const offenders = sourceFiles(SRC)
-    .filter((file) =>
-      /\.transaction\(/.test(stripComments(readFileSync(file, 'utf8'))),
-    )
-    .map((file) => relative(SRC, file));
-  assert.deepEqual(offenders, []);
-});

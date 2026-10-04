@@ -9,12 +9,16 @@ if (!process.env.DATABASE_URL && typeof process.loadEnvFile === 'function') {
 }
 
 async function main() {
-  const [{ db }, { migrate }] = await Promise.all([
+  const [{ db, pool }, { migrate }] = await Promise.all([
     import('../src/lib/db/index'),
-    import('drizzle-orm/neon-http/migrator'),
+    import('drizzle-orm/node-postgres/migrator'),
   ]);
-  await migrate(db, { migrationsFolder: resolve(process.cwd(), 'drizzle') });
-  console.log('Database migrations applied successfully.');
+  try {
+    await migrate(db, { migrationsFolder: resolve(process.cwd(), 'drizzle') });
+    console.log('Database migrations applied successfully.');
+  } finally {
+    await pool.end();
+  }
 }
 
 void main().catch((error) => {

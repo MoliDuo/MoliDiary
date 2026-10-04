@@ -124,7 +124,14 @@ async function main() {
   }
 }
 
-void main().catch((error) => {
-  console.error(error instanceof Error ? error.message : error);
-  process.exitCode = 1;
-});
+void main()
+  .catch((error) => {
+    console.error(error instanceof Error ? error.message : error);
+    process.exitCode = 1;
+  })
+  .finally(async () => {
+    // The pool keeps the event loop alive; close it if a command opened one.
+    const pool = (globalThis as { __limenPool?: { end(): Promise<void> } })
+      .__limenPool;
+    await pool?.end();
+  });

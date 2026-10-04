@@ -7,9 +7,6 @@ import { findActiveEntry } from '@/lib/db/entries-repo';
 import { activeEntries } from '@/lib/db/entry-scope';
 import { serializeApiEntry } from '@/lib/api/entry-serializer';
 
-export const maxDuration = 60;
-export const preferredRegion = 'sin1';
-
 type RouteDeps = {
   db: AppDatabase;
   authorizeRequest?: (request: Request) => Promise<boolean> | boolean;

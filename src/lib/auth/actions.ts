@@ -1,6 +1,5 @@
 'use server';
 
-import { after } from 'next/server';
 import { cookies, headers } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { db } from '@/lib/db';
@@ -15,10 +14,7 @@ import {
   SESSION_COOKIE_NAME,
   sessionCookieOptions,
 } from './session';
-import { deleteExpiredSessions } from '@/lib/crypto/key-slots';
-import { purgeExpiredEntries } from '@/lib/trash/purge';
 import {
-  cleanupLoginAttempts,
   clearLoginFailures,
   getLoginRateLimit,
   recordLoginFailure,
@@ -71,20 +67,16 @@ export async function login(
 ): Promise<ActionResult> {
   const result = await handleLoginAttempt(async () => {
     const requestHeaders = await headers();
+    // Only believed when a reverse proxy we run sits in front and overwrites
+    // the header; otherwise any client could pick its own rate-limit bucket.
     const forwardedFor =
-      requestHeaders.get('x-vercel-forwarded-for') ??
-      requestHeaders.get('x-forwarded-for');
+      process.env.TRUST_PROXY === 'true'
+        ? requestHeaders.get('x-forwarded-for')
+        : null;
     const loginResult = await authActions.login(
       formData,
       createLoginAttemptKey(forwardedFor),
     );
-    after(() => cleanupLoginAttempts());
-    after(() => deleteExpiredSessions(db));
-    // Guarantees the 30-day sweep eventually happens even if the owner never
-    // opens the recycle bin, without a cron dependency. Deliberately not on
-    // every timeline read: a day's delay is harmless, a DELETE per page load
-    // is not.
-    after(() => purgeExpiredEntries());
     return loginResult;
   });
   if (!result.ok) return result;

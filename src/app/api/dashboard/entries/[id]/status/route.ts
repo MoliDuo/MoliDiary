@@ -2,7 +2,6 @@ import { NextResponse } from 'next/server';
 import { getSession } from '@/lib/auth/session';
 import { findActiveEntry } from '@/lib/db/entries-repo';
 import { normalizeAIStatus, type AIStatus } from '@/lib/ai/polling';
-import { recoverStalePendingEntries } from '@/lib/ai/stale-pending';
 
 type StatusRouteDependencies = {
   authorize: () => unknown | Promise<unknown>;
@@ -36,7 +35,6 @@ export function createEntryStatusHandler({
 export const GET = createEntryStatusHandler({
   authorize: getSession,
   async loadStatus(id) {
-    await recoverStalePendingEntries();
     const entry = await findActiveEntry(id);
     return entry ? normalizeAIStatus(entry.aiStatus) : undefined;
   },

@@ -43,9 +43,8 @@ export function buildTrashViewModel(
 }
 
 export default async function TrashPage() {
-  // Inline, like recoverStalePendingEntries on the timeline: the bin must never
-  // show something that should already be gone. This page is rarely opened, so
-  // the cost does not matter, which is why the sweep is not on the hot path.
+  // Inline as well as on the hourly sweep: the bin must never show something
+  // that should already be gone.
   await purgeExpiredEntries();
 
   const cipher = await getFieldCipher(db);

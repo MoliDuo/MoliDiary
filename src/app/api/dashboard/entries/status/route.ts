@@ -4,19 +4,15 @@ import { getSession } from '@/lib/auth/session';
 import { db, type AppDatabase } from '@/lib/db';
 import { entries } from '@/lib/db/schema';
 import { normalizeAIStatus } from '@/lib/ai/polling';
-import { recoverStalePendingEntries } from '@/lib/ai/stale-pending';
 import { loadEntryTagsMap } from '@/lib/db/entry-tags';
 import { getFieldCipher } from '@/lib/crypto/cipher';
 import { activeEntries } from '@/lib/db/entry-scope';
 
-export const maxDuration = 60;
-export const preferredRegion = 'sin1';
 export const MAX_STATUS_IDS = 100;
 
 type BatchStatusDependencies = {
   authorize: () => unknown | Promise<unknown>;
   database: AppDatabase;
-  recoverPending?: (database: AppDatabase) => Promise<unknown>;
 };
 
 function parseIds(body: unknown) {
@@ -39,7 +35,6 @@ function parseIds(body: unknown) {
 export function createBatchEntryStatusHandler({
   authorize,
   database,
-  recoverPending = recoverStalePendingEntries,
 }: BatchStatusDependencies) {
   return async function POST(request: Request) {
     if (!(await authorize())) {
@@ -57,7 +52,6 @@ export function createBatchEntryStatusHandler({
       return NextResponse.json({ error: 'Invalid entry IDs' }, { status: 400 });
     }
 
-    await recoverPending(database);
     const cipher = await getFieldCipher(database);
     const rows = await database
       .select({

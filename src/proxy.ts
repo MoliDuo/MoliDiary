@@ -24,10 +24,12 @@ type ProxyDecision =
   | { type: 'redirect'; location: string }
   | { type: 'next' };
 
-// Served from the app root by Next's metadata files. The manifest and icons are
-// fetched without credentials during a PWA install, so redirecting them to
-// /login would break "add to home screen" outright.
+// /healthz answers the deploy script and uptime monitors, which have no
+// session. The rest are served from the app root by Next's metadata files: the
+// manifest and icons are fetched without credentials during a PWA install, so
+// redirecting them to /login would break "add to home screen" outright.
 const PUBLIC_ASSET_PATHS = new Set([
+  '/healthz',
   '/favicon.ico',
   '/robots.txt',
   '/manifest.webmanifest',

@@ -11,7 +11,7 @@ import type { FieldCipher } from '@/lib/crypto/field-cipher';
  * array string; parseTagNames decrypts and orders them.
  *
  * Cast to ::text and parsed in JS rather than relying on the driver's JSON
- * handling, because neon-http and PGlite decode json columns differently.
+ * handling, because node-postgres and PGlite decode json columns differently.
  */
 /*
  * Identifiers are written out and table-qualified rather than interpolated as
@@ -111,13 +111,11 @@ export function hasAnyTag(cipher: FieldCipher, names: string[]): SQL {
 /**
  * The only writer of entry_tags.
  *
- * neon-http has no interactive transactions, so this cannot be wrapped in one:
- * .transaction() type-checks, works under PGlite, and throws at runtime on
- * Neon. Inserts therefore run before the delete, so an interruption leaves a
- * superset of the intended tags rather than a gap.
+ * Runs in one transaction, so a failure leaves the entry's tags as they were.
  *
- * `respectLock` is enforced inside the SQL predicates instead of a read-then-
- * write in JS, which makes it race-free without a transaction.
+ * `respectLock` is enforced inside the SQL predicates rather than by a
+ * read-then-write in JS, so a concurrent hand-edit that locks the tags cannot
+ * slip in between the check and the write.
  */
 export async function syncEntryTags(
   database: AppDatabase,
@@ -135,35 +133,37 @@ export async function syncEntryTags(
       )`
     : sql`true`;
 
-  if (normalized.length > 0) {
-    await database
-      .insert(tags)
-      .values(
-        normalized.map((name, index) => ({
-          name: cipher.encryptTagName(name),
-          nameHmac: hashes[index],
-        })),
-      )
-      .onConflictDoNothing();
-    await database.execute(sql`
-      INSERT INTO entry_tags (entry_id, tag_id)
-      SELECT ${entryId}, t.id FROM tags t
-      WHERE t.name_hmac = ANY(${sql.param(hashes)}) AND ${unlocked}
-      ON CONFLICT DO NOTHING
+  await database.transaction(async (tx) => {
+    if (normalized.length > 0) {
+      await tx
+        .insert(tags)
+        .values(
+          normalized.map((name, index) => ({
+            name: cipher.encryptTagName(name),
+            nameHmac: hashes[index],
+          })),
+        )
+        .onConflictDoNothing();
+      await tx.execute(sql`
+        INSERT INTO entry_tags (entry_id, tag_id)
+        SELECT ${entryId}, t.id FROM tags t
+        WHERE t.name_hmac = ANY(${sql.param(hashes)}) AND ${unlocked}
+        ON CONFLICT DO NOTHING
+      `);
+    }
+
+    const keep =
+      normalized.length > 0
+        ? sql`AND entry_tags.tag_id NOT IN (
+            SELECT t.id FROM tags t WHERE t.name_hmac = ANY(${sql.param(hashes)})
+          )`
+        : sql``;
+
+    await tx.execute(sql`
+      DELETE FROM entry_tags
+      WHERE entry_tags.entry_id = ${entryId}
+        ${keep}
+        AND ${unlocked}
     `);
-  }
-
-  const keep =
-    normalized.length > 0
-      ? sql`AND entry_tags.tag_id NOT IN (
-          SELECT t.id FROM tags t WHERE t.name_hmac = ANY(${sql.param(hashes)})
-        )`
-      : sql``;
-
-  await database.execute(sql`
-    DELETE FROM entry_tags
-    WHERE entry_tags.entry_id = ${entryId}
-      ${keep}
-      AND ${unlocked}
-  `);
+  });
 }

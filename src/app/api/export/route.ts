@@ -15,9 +15,6 @@ import { getSettings } from '@/lib/settings';
 import type { AppSettings } from '@/lib/settings-core';
 import { loadExportEntries } from '@/lib/export-data';
 
-export const maxDuration = 60;
-export const preferredRegion = 'sin1';
-
 type ExportRouteDeps = {
   authorize: () => unknown | Promise<unknown>;
   loadSettings: () => AppSettings | Promise<AppSettings>;

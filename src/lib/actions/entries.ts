@@ -1,17 +1,17 @@
 'use server';
 
-import { after } from 'next/server';
 import { nanoid } from 'nanoid';
 import { revalidatePath } from 'next/cache';
 import { db } from '@/lib/db';
 import { processAIEntries, processAIEntry } from '@/lib/ai/processor';
+import { scheduleAIJob } from '@/lib/ai/worker';
 import { requireSession } from '@/lib/auth/session';
 import { createEntryActions } from './entries-core';
 
 const entryActions = createEntryActions({
   db,
   createId: () => nanoid(12),
-  scheduleAI: (job) => after(job),
+  scheduleAI: (job) => scheduleAIJob(db, job),
   processAIEntry,
   processAIEntries,
   authorize: requireSession,
