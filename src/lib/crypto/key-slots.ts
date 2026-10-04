@@ -30,7 +30,7 @@ export type ScryptParams = { N: number; r: number; p: number };
 export type CredentialKind = 'session' | 'api_token';
 
 /** 128 MiB and roughly a fifth of a second per attempt. */
-export const DEFAULT_SCRYPT_PARAMS: ScryptParams = { N: 2 ** 17, r: 8, p: 1 };
+const DEFAULT_SCRYPT_PARAMS: ScryptParams = { N: 2 ** 17, r: 8, p: 1 };
 
 const INITIAL_SLOT_ID = 'initial';
 const WRAP_AAD = 'limen/data-key/v1';
@@ -300,6 +300,7 @@ export async function changePassword(
   return true;
 }
 
+/** @public Called by scripts/crypto.ts through a dynamic import. */
 export async function revokeSessions(
   database: AppDatabase,
   { except }: { except?: string } = {},

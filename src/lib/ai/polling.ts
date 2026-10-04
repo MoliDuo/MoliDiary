@@ -17,7 +17,7 @@ export type EntryStatusPatch = {
   tags: string[];
 };
 
-export const AI_STATUS_BATCH_SIZE = 100;
+const AI_STATUS_BATCH_SIZE = 100;
 
 export function chunkPendingEntryIds(
   ids: string[],

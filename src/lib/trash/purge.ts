@@ -5,7 +5,7 @@ import { trashedEntries } from '@/lib/db/entry-scope';
 
 export const TRASH_RETENTION_MS = 30 * 24 * 60 * 60 * 1_000;
 
-export function trashExpiresAt(deletedAt: Date) {
+function trashExpiresAt(deletedAt: Date) {
   return new Date(deletedAt.getTime() + TRASH_RETENTION_MS);
 }
 

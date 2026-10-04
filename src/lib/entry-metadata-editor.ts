@@ -1,9 +1,9 @@
 import type { messages as copyShape } from '@/lib/messages';
 import { normalizeTags } from '@/lib/tags';
 
-export const MAX_TAGS = 10;
-export const MAX_TAG_LENGTH = 50;
-export const MAX_TITLE_LENGTH = 200;
+const MAX_TAGS = 10;
+const MAX_TAG_LENGTH = 50;
+const MAX_TITLE_LENGTH = 200;
 
 export type TagDraftIssue =
   'empty' | 'duplicate' | 'too-long' | 'limit-reached';

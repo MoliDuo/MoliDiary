@@ -5,7 +5,7 @@ import { getAIWorker } from '@/lib/ai/worker';
 import { db, pool } from '@/lib/db';
 import { purgeExpiredEntries } from '@/lib/trash/purge';
 
-export const HOUSEKEEPING_INTERVAL_MS = 60 * 60 * 1_000;
+const HOUSEKEEPING_INTERVAL_MS = 60 * 60 * 1_000;
 
 type Task = { name: string; run: () => Promise<unknown> };
 
@@ -20,13 +20,13 @@ export async function runTasks(tasks: Task[]) {
   }
 }
 
-export const housekeepingTasks: Task[] = [
+const housekeepingTasks: Task[] = [
   { name: 'expired sessions', run: () => deleteExpiredSessions(db) },
   { name: 'login attempts', run: () => cleanupLoginAttempts() },
   { name: 'trash purge', run: () => purgeExpiredEntries() },
 ];
 
-export const SHUTDOWN_GRACE_MS = 20_000;
+const SHUTDOWN_GRACE_MS = 20_000;
 
 /**
  * Lets queued and running AI jobs finish (up to the grace period) before the

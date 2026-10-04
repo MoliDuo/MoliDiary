@@ -2,8 +2,8 @@ import { eq, lt, sql } from 'drizzle-orm';
 import { db, type AppDatabase } from '@/lib/db';
 import { authAttempts } from '@/lib/db/schema';
 
-export const LOGIN_WINDOW_MS = 15 * 60 * 1_000;
-export const LOGIN_MAX_FAILURES = 5;
+const LOGIN_WINDOW_MS = 15 * 60 * 1_000;
+const LOGIN_MAX_FAILURES = 5;
 const ATTEMPT_RETENTION_MS = 7 * 24 * 60 * 60 * 1_000;
 
 export async function getLoginRateLimit(

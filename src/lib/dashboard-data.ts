@@ -17,7 +17,7 @@ import { activeEntries } from '@/lib/db/entry-scope';
 import { getFieldCipher } from '@/lib/crypto/cipher';
 import type { FieldCipher } from '@/lib/crypto/field-cipher';
 
-export const DASHBOARD_PREVIEW_LENGTH = 280;
+const DASHBOARD_PREVIEW_LENGTH = 280;
 
 // Characters of lead-in kept before a search hit, so the match lands in view
 // with some context rather than at the very start of the snippet.
@@ -67,7 +67,7 @@ function matchesQuery(query: string, fields: Array<string | null | undefined>) {
   return fields.some((field) => field?.toLowerCase().includes(needle));
 }
 
-export type DashboardEntry = {
+type DashboardEntry = {
   id: string;
   title: string | null;
   preview: string;

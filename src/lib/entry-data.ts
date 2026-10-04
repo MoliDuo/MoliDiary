@@ -6,5 +6,3 @@ import { findActiveEntry } from '@/lib/db/entries-repo';
  * entry without issuing two queries. Trashed entries read as missing.
  */
 export const getEntryById = cache((id: string) => findActiveEntry(id));
-
-export type { EntryRecord } from '@/lib/db/entries-repo';
