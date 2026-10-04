@@ -6,6 +6,7 @@ level: L3
 login:
   mode: P1
   client_id: moli-diary
+  protected_api: /api/entries
 
 deploy:
   platform: docker
