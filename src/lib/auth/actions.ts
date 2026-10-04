@@ -7,7 +7,7 @@ import type { ActionResult } from '@/lib/actions/result';
 import { messages } from '@/lib/messages';
 import { createAuthActions } from './action-core';
 import { createLoginAttemptKey } from './security';
-import { unlockForLogin } from './login-unlock';
+import { unlockForSession } from './session-unlock';
 import {
   createSession,
   destroySession,
@@ -37,7 +37,7 @@ async function clearSessionCookie() {
 }
 
 const authActions = createAuthActions({
-  unlock: (password) => unlockForLogin(password),
+  openKey: (password) => unlockForSession(password),
   getRateLimit: getLoginRateLimit,
   recordFailure: recordLoginFailure,
   clearFailures: clearLoginFailures,
@@ -48,24 +48,24 @@ const authActions = createAuthActions({
   clearSessionCookie,
 });
 
-export async function handleLoginAttempt(
+export async function handleUnlockAttempt(
   attempt: () => Promise<ActionResult>,
   reportError: (error: unknown) => void = (error) =>
-    console.error('Login action failed:', error),
+    console.error('Unlock action failed:', error),
 ): Promise<ActionResult> {
   try {
     return await attempt();
   } catch (error) {
     reportError(error);
-    return { ok: false, error: messages.login.unexpectedError };
+    return { ok: false, error: messages.unlock.unexpectedError };
   }
 }
 
-export async function login(
+export async function unlock(
   _previousState: ActionResult | undefined,
   formData: FormData,
 ): Promise<ActionResult> {
-  const result = await handleLoginAttempt(async () => {
+  const result = await handleUnlockAttempt(async () => {
     const requestHeaders = await headers();
     // Only believed when a reverse proxy we run sits in front and overwrites
     // the header; otherwise any client could pick its own rate-limit bucket.
@@ -73,16 +73,16 @@ export async function login(
       process.env.TRUST_PROXY === 'true'
         ? requestHeaders.get('x-forwarded-for')
         : null;
-    const loginResult = await authActions.login(
+    const unlockResult = await authActions.unlock(
       formData,
       createLoginAttemptKey(forwardedFor),
     );
-    return loginResult;
+    return unlockResult;
   });
   if (!result.ok) return result;
   redirect('/');
 }
 
-export async function logout() {
-  return authActions.logout();
+export async function lock() {
+  return authActions.lock();
 }

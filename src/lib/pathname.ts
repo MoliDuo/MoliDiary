@@ -2,8 +2,13 @@ export function dashboardPath() {
   return '/';
 }
 
+/** Starts the Authelia sign-in; there is no page of ours behind it. */
 export function loginPath() {
-  return '/login';
+  return '/auth/login';
+}
+
+export function unlockPath() {
+  return '/unlock';
 }
 
 export function entryDetailPath(id: string) {

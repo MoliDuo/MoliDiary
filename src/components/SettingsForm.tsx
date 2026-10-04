@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { Download, Loader2, Save, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import type { WritingStats } from '@/lib/stats';
-import { LogoutButton } from '@/components/LogoutButton';
+import { LockButton } from '@/components/LockButton';
 import {
   SecuritySettings,
   type ApiTokenSummary,
@@ -364,7 +364,7 @@ export function SettingsForm({
         >
           {messages.settings.signOutHeading}
         </h2>
-        <LogoutButton />
+        <LockButton />
       </section>
     </div>
   );

@@ -54,8 +54,9 @@ It ships as one Docker image and runs behind Traefik on the Moli server. See `do
 
 ## Do not touch
 
-- `src/lib/auth/`, `src/app/login/` and the sign-in flow: the administrator is moving sign-in to Authelia separately.
-  Ask before changing them.
+- Sign-in is Authelia through OIDC (standard 008, P1): `src/lib/auth/oidc.ts`, `login-flow.ts` and `src/app/auth/`. The
+  app has no login page and only administrators get a session. The PIN only unlocks the data key (`src/app/unlock/`);
+  never turn it back into a sign-in. The client secret lives only in the server `.env`, never in the repository.
 - The persisted identifiers that still say `limen`: the key-derivation labels and AAD strings in `src/lib/crypto/`, the
   login-attempt hash label, the API token prefix and the session cookie names. They are part of the stored data and of
   issued credentials; changing one makes existing entries undecryptable or signs everyone out. Listed in `moli.yaml`.

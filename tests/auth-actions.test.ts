@@ -19,7 +19,7 @@ function dependencies(
     sessionKeys,
     destroyed: () => destroyed,
     actions: createAuthActions({
-      unlock: async (password): Promise<UnlockResult> =>
+      openKey: async (password): Promise<UnlockResult> =>
         password === 'correct-password-value' ? DATA_KEY : null,
       getRateLimit: async () => ({ blocked: false, retryAfterSeconds: 0 }),
       recordFailure: async () => ({
@@ -55,7 +55,7 @@ function passwordForm(password: string) {
 test('login opens a session with the key the password unlocked', async () => {
   const { actions, cookieWrites, sessionKeys } = dependencies();
   assert.deepEqual(
-    await actions.login(passwordForm('correct-password-value'), 'client'),
+    await actions.unlock(passwordForm('correct-password-value'), 'client'),
     { ok: true, data: undefined },
   );
   assert.deepEqual(cookieWrites, ['session-token']);
@@ -70,7 +70,7 @@ test('login records invalid passwords without setting a cookie', async () => {
       return { blocked: false, retryAfterSeconds: 0, failures };
     },
   });
-  const result = await actions.login(passwordForm('wrong'), 'client');
+  const result = await actions.unlock(passwordForm('wrong'), 'client');
   assert.equal(result.ok, false);
   assert.equal(failures, 1);
   assert.deepEqual(cookieWrites, []);
@@ -79,13 +79,13 @@ test('login records invalid passwords without setting a cookie', async () => {
 test('login does not try an empty or missing password', async () => {
   let unlocked = 0;
   const { actions } = dependencies({
-    unlock: async () => {
+    openKey: async () => {
       unlocked += 1;
       return DATA_KEY;
     },
   });
-  assert.equal((await actions.login(new FormData(), 'client')).ok, false);
-  assert.equal((await actions.login(passwordForm(''), 'client')).ok, false);
+  assert.equal((await actions.unlock(new FormData(), 'client')).ok, false);
+  assert.equal((await actions.unlock(passwordForm(''), 'client')).ok, false);
   assert.equal(unlocked, 0);
 });
 
@@ -93,15 +93,15 @@ test('login rejects blocked clients before trying the password', async () => {
   let unlocked = false;
   const { actions } = dependencies({
     getRateLimit: async () => ({ blocked: true, retryAfterSeconds: 120 }),
-    unlock: async () => {
+    openKey: async () => {
       unlocked = true;
       return DATA_KEY;
     },
   });
-  const result = await actions.login(passwordForm('x'), 'blocked-client');
+  const result = await actions.unlock(passwordForm('x'), 'blocked-client');
   assert.deepEqual(result, {
     ok: false,
-    error: '密码错误或请求过于频繁',
+    error: 'PIN 错误或请求过于频繁',
     retryAfterSeconds: 120,
   });
   assert.equal(unlocked, false);
@@ -110,22 +110,22 @@ test('login rejects blocked clients before trying the password', async () => {
 test('login explains how to set up a database with no password', async () => {
   let failures = 0;
   const { actions } = dependencies({
-    unlock: async () => 'uninitialized',
+    openKey: async () => 'uninitialized',
     recordFailure: async () => {
       failures += 1;
       return { blocked: false, retryAfterSeconds: 0, failures };
     },
   });
-  assert.deepEqual(await actions.login(passwordForm('anything'), 'client'), {
+  assert.deepEqual(await actions.unlock(passwordForm('anything'), 'client'), {
     ok: false,
     error: UNINITIALIZED_MESSAGE,
   });
   assert.equal(failures, 0);
 });
 
-test('logout ends the session and clears the cookie', async () => {
+test('lock ends the session and clears the cookie', async () => {
   const { actions, cookieWrites, destroyed } = dependencies();
-  assert.deepEqual(await actions.logout(), { ok: true, data: undefined });
+  assert.deepEqual(await actions.lock(), { ok: true, data: undefined });
   assert.equal(destroyed(), 1);
   assert.deepEqual(cookieWrites, ['cleared']);
 });

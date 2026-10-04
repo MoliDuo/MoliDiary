@@ -91,7 +91,7 @@ test('pages carry their own browser title', async () => {
     ['src/app/(dashboard)/entries/new/page.tsx', '新建'],
     ['src/app/(dashboard)/entries/[id]/edit/page.tsx', '编辑'],
     ['src/app/(dashboard)/settings/page.tsx', '设置'],
-    ['src/app/login/layout.tsx', '登录'],
+    ['src/app/unlock/layout.tsx', '解锁'],
   ] as const) {
     assert.match(read(file), new RegExp(`title: '${title}'`), file);
   }

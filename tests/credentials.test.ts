@@ -15,7 +15,7 @@ import {
 } from '@/lib/auth/credentials';
 import { authorizeApiRequest } from '@/lib/auth/security';
 import { createSession, readSession } from '@/lib/auth/session';
-import { unlockForLogin } from '@/lib/auth/login-unlock';
+import { unlockForSession } from '@/lib/auth/session-unlock';
 import { createSecurityActions } from '@/lib/security-core';
 import type { AppDatabase } from '@/lib/db';
 import { createTestDb } from './helpers/test-db';
@@ -216,7 +216,7 @@ test('changing the password keeps this device and API tokens, signs out the rest
   );
   assert.deepEqual(wrong, {
     ok: false,
-    error: '当前密码不正确',
+    error: '当前 PIN 不正确',
     retryAfterSeconds: undefined,
   });
   assert.equal(
@@ -302,11 +302,21 @@ test('repeated wrong current passwords are throttled', async () => {
 
 test('login opens the password slot, or asks for setup when there is none', async () => {
   const empty = await freshDb();
-  assert.equal(await unlockForLogin('anything', empty), 'uninitialized');
+  assert.equal(await unlockForSession('anything', empty), 'uninitialized');
   assert.equal((await countKeySlots(empty)).password, 0);
 
   const db = await freshDb();
   await testDataKey(db);
-  assert.equal(await unlockForLogin('wrong', db), null);
-  assert.ok(Buffer.isBuffer(await unlockForLogin(TEST_PASSWORD, db)));
+  assert.equal(await unlockForSession('wrong', db), null);
+  assert.ok(Buffer.isBuffer(await unlockForSession(TEST_PASSWORD, db)));
+});
+
+test('a PIN of six characters is allowed, and short ones are called out', async () => {
+  const { MIN_PASSWORD_LENGTH, pinStrengthNote } =
+    await import('@/lib/security-core');
+  assert.equal(MIN_PASSWORD_LENGTH, 6);
+  assert.equal(pinStrengthNote(''), null);
+  assert.match(pinStrengthNote('123456') ?? '', /纯数字/);
+  assert.match(pinStrengthNote('abc123') ?? '', /较短/);
+  assert.equal(pinStrengthNote('a-long-enough-pin'), null);
 });

@@ -5,6 +5,7 @@ import {
   deleteCredentialSlot,
   updateCredentialSlot,
 } from '@/lib/crypto/key-slots';
+import { getIdentity } from '@/lib/auth/identity';
 import {
   forgetCredentials,
   formatCredential,
@@ -12,6 +13,10 @@ import {
 } from '@/lib/auth/credentials';
 
 /**
+ * The unlock session: the proof that this browser has typed the master
+ * PIN. Who the person is comes from Authelia (lib/auth/identity.ts); both are
+ * needed to read the diary.
+ *
  * Sessions are key slots (lib/crypto/key-slots.ts): the cookie holds the only
  * copy of the secret that opens the session's wrapped data key. Signing out
  * or changing the password deletes the slot, which ends the session on every
@@ -92,7 +97,9 @@ export async function readSession(
   return { id: credential.slotId, expiresAt: credential.expiresAt };
 }
 
+/** Null unless an administrator is signed in and this browser is unlocked. */
 export async function getSession(database: AppDatabase = db) {
+  if (!(await getIdentity(database))) return null;
   return readSession(
     database,
     (await cookies()).get(SESSION_COOKIE_NAME)?.value,

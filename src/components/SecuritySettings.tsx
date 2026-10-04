@@ -12,6 +12,7 @@ import type { ActionResult } from '@/lib/actions/result';
 import {
   MAX_TOKEN_LABEL_LENGTH,
   MIN_PASSWORD_LENGTH,
+  pinStrengthNote,
   type CreatedApiToken,
 } from '@/lib/security-core';
 import { PendingActionButton } from '@/components/PendingActionButton';
@@ -29,12 +30,14 @@ const HEADING = 'border-b border-border pb-2 font-mono text-xs text-muted';
 
 function PasswordForm() {
   const formRef = useRef<HTMLFormElement>(null);
+  const [newPin, setNewPin] = useState('');
   const [state, action, pending] = useActionState(
     async (previous: ActionResult | undefined, formData: FormData) => {
       const result = await changePassword(previous, formData);
       if (result.ok) {
         formRef.current?.reset();
-        toast.success('密码已修改，其他设备已退出登录');
+        setNewPin('');
+        toast.success('PIN 已修改，其他设备已锁定');
       }
       return result;
     },
@@ -43,7 +46,7 @@ function PasswordForm() {
 
   return (
     <form ref={formRef} action={action} className="max-w-md space-y-4">
-      {/* Lets password managers file the new password under the right entry. */}
+      {/* Lets password managers file the new PIN under the right entry. */}
       <input
         type="text"
         name="username"
@@ -54,7 +57,7 @@ function PasswordForm() {
       />
       <div className="space-y-2">
         <label htmlFor="current-password" className="text-sm font-medium">
-          当前密码
+          当前 PIN
         </label>
         <Input
           id="current-password"
@@ -66,20 +69,22 @@ function PasswordForm() {
       </div>
       <div className="space-y-2">
         <label htmlFor="new-password" className="text-sm font-medium">
-          新密码
+          新 PIN
         </label>
         <Input
           id="new-password"
           name="newPassword"
           type="password"
           autoComplete="new-password"
+          value={newPin}
+          onChange={(event) => setNewPin(event.target.value)}
           minLength={MIN_PASSWORD_LENGTH}
           required
         />
       </div>
       <div className="space-y-2">
         <label htmlFor="confirm-password" className="text-sm font-medium">
-          确认新密码
+          确认新 PIN
         </label>
         <Input
           id="confirm-password"
@@ -90,6 +95,11 @@ function PasswordForm() {
           required
         />
       </div>
+      {pinStrengthNote(newPin) ? (
+        <p className="text-sm leading-6 text-muted">
+          {pinStrengthNote(newPin)}
+        </p>
+      ) : null}
       {state && !state.ok ? (
         <p role="alert" className="text-sm text-danger">
           {state.error}
@@ -97,7 +107,7 @@ function PasswordForm() {
       ) : null}
       <Button type="submit" variant="secondary" disabled={pending}>
         {pending ? <Loader2 className="animate-spin" /> : <KeyRound />}
-        修改密码
+        修改 PIN
       </Button>
     </form>
   );
@@ -274,14 +284,15 @@ export function SecuritySettings({ tokens }: { tokens: ApiTokenSummary[] }) {
     <>
       <section aria-labelledby="password-heading" className="space-y-5">
         <h2 id="password-heading" className={HEADING}>
-          主密码
+          PIN
         </h2>
         <p className="text-sm leading-6 text-muted">
-          主密码既用于登录，也是日记内容的加密密钥。忘记后
+          PIN
+          用来解锁日记，也是日记内容的加密密钥，可以是数字或更长的口令。忘记后
           <strong className="font-medium text-text">
             无法找回，日记也无法解密
           </strong>
-          ，请存进密码管理器。修改后，除当前设备外的所有登录都会退出。
+          ，请存进密码管理器。修改后，除当前设备外的所有设备都会锁定。
         </p>
         <PasswordForm />
       </section>

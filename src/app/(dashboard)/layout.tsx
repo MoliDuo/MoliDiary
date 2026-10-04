@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { messages } from '@/lib/messages';
 import {
   dashboardPath,
-  loginPath,
+  unlockPath,
   newEntryPath,
   settingsPath,
 } from '@/lib/pathname';
@@ -19,9 +19,9 @@ export default async function DashboardLayout({
   navControls: React.ReactNode;
 }) {
   const session = await getSession();
-  if (!session) redirect(loginPath());
+  if (!session) redirect(unlockPath());
   return (
-    // The theme lives on <html> (src/app/layout.tsx) so it also covers /login,
+    // The theme lives on <html> (src/app/layout.tsx) so it also covers /unlock,
     // the document background and toasts.
     <div className="flex min-h-screen flex-col bg-bg text-text">
       <header className="sticky top-0 z-10 border-b border-border bg-bg/90 backdrop-blur">

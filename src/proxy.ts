@@ -7,7 +7,14 @@ import {
   sessionCookieOptions,
   shouldRenewSession,
 } from '@/lib/auth/session';
-import { loginPath, stripLegacyLocalePath } from '@/lib/pathname';
+import { loginPath, unlockPath, stripLegacyLocalePath } from '@/lib/pathname';
+import {
+  IDENTITY_COOKIE_NAME,
+  identityCookieOptions,
+  readIdentity,
+  renewIdentitySession,
+  shouldRenewIdentity,
+} from '@/lib/auth/identity';
 import {
   applySecurityHeaders,
   buildContentSecurityPolicy,
@@ -16,18 +23,17 @@ import {
 
 type ProxyDecisionInput = {
   pathname: string;
+  signedIn: boolean;
   hasSession: boolean;
 };
 
 type ProxyDecision =
-  | { type: 'json'; status: number; body: { error: string } }
-  | { type: 'redirect'; location: string }
-  | { type: 'next' };
+  { type: 'login' } | { type: 'redirect'; location: string } | { type: 'next' };
 
 // /healthz answers the deploy script and uptime monitors, which have no
 // session. The rest are served from the app root (the manifest by Next's metadata
 // file, the icons from public/): the manifest and icons are fetched without credentials during a PWA install, so
-// redirecting them to /login would break "add to home screen" outright.
+// redirecting them to /unlock would break "add to home screen" outright.
 const PUBLIC_ASSET_PATHS = new Set([
   '/healthz',
   '/favicon.ico',
@@ -46,12 +52,15 @@ export function shouldBypassProxy(pathname: string) {
     pathname.startsWith('/_next/static/') ||
     pathname.startsWith('/_next/image/') ||
     pathname.startsWith('/api/') ||
+    // The sign-in flow runs before there is any session to check.
+    pathname.startsWith('/auth/') ||
     PUBLIC_ASSET_PATHS.has(pathname)
   );
 }
 
 export function evaluateProxyRequest({
   pathname,
+  signedIn,
   hasSession,
 }: ProxyDecisionInput): ProxyDecision {
   if (shouldBypassProxy(pathname)) return { type: 'next' };
@@ -59,22 +68,28 @@ export function evaluateProxyRequest({
   const normalizedPath = stripLegacyLocalePath(pathname);
   if (normalizedPath !== pathname)
     return { type: 'redirect', location: normalizedPath };
-  if (pathname === '/login') {
+  // Signing in is Authelia's job: the app has no page of its own for it
+  // (standard 008, 8.4.4), it just sends the browser there.
+  if (!signedIn) return { type: 'login' };
+  if (pathname === unlockPath()) {
     return hasSession ? { type: 'redirect', location: '/' } : { type: 'next' };
   }
   return hasSession
     ? { type: 'next' }
-    : { type: 'redirect', location: loginPath() };
+    : { type: 'redirect', location: unlockPath() };
 }
 
 export async function proxy(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
   if (shouldBypassProxy(pathname)) return NextResponse.next();
 
+  const identityToken = request.cookies.get(IDENTITY_COOKIE_NAME)?.value;
+  const identity = await readIdentity(db, identityToken);
   const cookie = request.cookies.get(SESSION_COOKIE_NAME)?.value;
-  const session = await readSession(db, cookie);
+  const session = identity ? await readSession(db, cookie) : null;
   const decision = evaluateProxyRequest({
     pathname,
+    signedIn: Boolean(identity),
     hasSession: Boolean(session),
   });
   const nonce = createRequestNonce();
@@ -84,12 +99,24 @@ export async function proxy(request: NextRequest) {
   requestHeaders.set('Content-Security-Policy', contentSecurityPolicy);
 
   let response: NextResponse;
-  if (decision.type === 'json') {
-    response = NextResponse.json(decision.body, { status: decision.status });
+  if (decision.type === 'login') {
+    const target = new URL(loginPath(), request.url);
+    target.searchParams.set(
+      'returnTo',
+      `${request.nextUrl.pathname}${request.nextUrl.search}`,
+    );
+    response = NextResponse.redirect(target);
   } else if (decision.type === 'redirect') {
     response = NextResponse.redirect(new URL(decision.location, request.url));
   } else {
     response = NextResponse.next({ request: { headers: requestHeaders } });
+  }
+  if (identity && identityToken && shouldRenewIdentity(identity)) {
+    response.cookies.set(
+      IDENTITY_COOKIE_NAME,
+      identityToken,
+      identityCookieOptions(await renewIdentitySession(db, identityToken)),
+    );
   }
   if (session && cookie && shouldRenewSession(session)) {
     // Sliding expiry: an active reader never hits the 7-day wall.
@@ -98,8 +125,8 @@ export async function proxy(request: NextRequest) {
       cookie,
       sessionCookieOptions(await renewSession(db, session)),
     );
-  } else if (!session && cookie) {
-    // Signed out elsewhere, expired or tampered: drop it so the browser stops
+  } else if (identity && !session && cookie) {
+    // Locked elsewhere, expired or tampered: drop it so the browser stops
     // sending it.
     response.cookies.set(
       SESSION_COOKIE_NAME,

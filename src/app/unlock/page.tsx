@@ -2,14 +2,14 @@
 
 import { useActionState, useEffect, useState } from 'react';
 import { Eye, EyeOff, Loader2 } from 'lucide-react';
-import { login } from '@/lib/auth/actions';
+import { unlock } from '@/lib/auth/actions';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { messages } from '@/lib/messages';
 import type { ActionResult } from '@/lib/actions/result';
 
-export function getLoginSubmitLabel(loading: boolean) {
-  return loading ? messages.login.submitLoading : messages.login.submitIdle;
+export function getUnlockSubmitLabel(loading: boolean) {
+  return loading ? messages.unlock.submitLoading : messages.unlock.submitIdle;
 }
 
 export function formatRetryCountdown(seconds: number) {
@@ -18,7 +18,7 @@ export function formatRetryCountdown(seconds: number) {
   return `${String(minutes).padStart(2, '0')}:${String(remainingSeconds).padStart(2, '0')}`;
 }
 
-function LoginFields({
+function UnlockFields({
   state,
   isPending,
 }: {
@@ -41,7 +41,7 @@ function LoginFields({
   }, [blocked]);
 
   const error = blocked
-    ? messages.login.rateLimited(formatRetryCountdown(retryAfterSeconds))
+    ? messages.unlock.rateLimited(formatRetryCountdown(retryAfterSeconds))
     : state && !state.ok
       ? state.error
       : undefined;
@@ -49,19 +49,19 @@ function LoginFields({
   return (
     <>
       <div className="relative">
-        <label htmlFor="login-password" className="sr-only">
-          {messages.login.password}
+        <label htmlFor="unlock-password" className="sr-only">
+          {messages.unlock.password}
         </label>
         <Input
-          id="login-password"
+          id="unlock-password"
           name="password"
           type={revealed ? 'text' : 'password'}
           required
-          autoComplete="current-password"
+          autoComplete="off"
           autoFocus
           disabled={isPending || blocked}
           className="h-11 px-11 text-center font-mono text-base tracking-widest"
-          placeholder="密码"
+          placeholder="PIN"
         />
         {/* Typing a long password blind on a phone means starting over on
             every mistype. */}
@@ -70,7 +70,9 @@ function LoginFields({
           onClick={() => setRevealed((current) => !current)}
           disabled={isPending || blocked}
           aria-label={
-            revealed ? messages.login.hidePassword : messages.login.showPassword
+            revealed
+              ? messages.unlock.hidePassword
+              : messages.unlock.showPassword
           }
           aria-pressed={revealed}
           className="absolute right-2 top-1/2 inline-flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-md text-muted hover:bg-surface2 hover:text-text disabled:opacity-50"
@@ -93,14 +95,14 @@ function LoginFields({
         className="h-11 w-full"
       >
         {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-        {getLoginSubmitLabel(isPending)}
+        {getUnlockSubmitLabel(isPending)}
       </Button>
     </>
   );
 }
 
-export default function LoginPage() {
-  const [state, action, isPending] = useActionState(login, undefined);
+export default function UnlockPage() {
+  const [state, action, isPending] = useActionState(unlock, undefined);
   const retryAfterSeconds =
     state && !state.ok ? (state.retryAfterSeconds ?? 0) : 0;
 
@@ -108,9 +110,9 @@ export default function LoginPage() {
     <div className="flex min-h-screen items-center justify-center bg-bg p-6">
       <form action={action} className="w-full max-w-xs space-y-4">
         <h1 className="pb-4 text-center font-mono text-2xl font-semibold tracking-tight text-text">
-          limen<span className="animate-pulse text-primary">_</span>
+          diary<span className="animate-pulse text-primary">_</span>
         </h1>
-        <LoginFields
+        <UnlockFields
           key={retryAfterSeconds}
           state={state}
           isPending={isPending}
