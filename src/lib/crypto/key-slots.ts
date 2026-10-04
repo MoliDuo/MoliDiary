@@ -276,10 +276,10 @@ export async function unlockCredentialSlot(
 }
 
 /**
- * Replaces the password. Adds the new slot before removing the old ones, so
- * an interruption leaves both passwords working rather than neither; running
- * it again finishes the job. Every session except `keepSessionId` is signed
- * out, since whoever knew the old password may be holding one.
+ * Replaces the password in one transaction: either the new password replaces
+ * the old one and the other sessions are signed out, or nothing changes. Every
+ * session except `keepSessionId` is signed out, since whoever knew the old
+ * password may be holding one.
  */
 export async function changePassword(
   database: AppDatabase,
@@ -290,11 +290,13 @@ export async function changePassword(
   const opened = await unlockWithPassword(database, currentPassword);
   if (!opened) return false;
   const next = await wrapForPassword(nanoid(), opened.dataKey, newPassword);
-  await database.insert(encryptionKeySlots).values(next);
-  await database
-    .delete(encryptionKeySlots)
-    .where(and(isPasswordSlot, ne(encryptionKeySlots.id, next.id)));
-  await revokeSessions(database, { except: keepSessionId });
+  await database.transaction(async (tx) => {
+    await tx.insert(encryptionKeySlots).values(next);
+    await tx
+      .delete(encryptionKeySlots)
+      .where(and(isPasswordSlot, ne(encryptionKeySlots.id, next.id)));
+    await revokeSessions(tx, { except: keepSessionId });
+  });
   return true;
 }
 
