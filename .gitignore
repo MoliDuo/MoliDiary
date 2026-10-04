@@ -60,3 +60,10 @@ ENV/
 .DS_Store
 Thumbs.db
 backups/
+
+# Secrets and keys (Moli standard 012, 12.11.3)
+.dev.vars
+*.p12
+*.pem
+*.key
+*.keystore
