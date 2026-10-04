@@ -33,4 +33,3 @@ export async function updateEntry(id: string, formData: FormData) {
 export const regenerateEntryMetadata = entryActions.regenerateEntryMetadata;
 export const bulkRegenerateEntryMetadata =
   entryActions.bulkRegenerateEntryMetadata;
-export const bulkDeleteEntries = entryActions.bulkDeleteEntries;

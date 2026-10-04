@@ -1,0 +1,47 @@
+name: MoliDiary
+id: diary
+kind: web
+level: L3
+
+login:
+  mode: exempt
+
+deploy:
+  platform: docker
+  domain: diary.xiangyu.pro
+
+data:
+  db: postgres
+
+release:
+  kind: service
+
+# Renamed from Limen on 2026-10-02 (the old repo is xiangyumou/Limen, the old app id on the server was "limen").
+exceptions:
+  - rule: '8.9'
+    reason: The master password is also the key that decrypts the diary, so the server never holds a secret that could replace it; the administrator will put an Authelia gateway in front separately
+    until: 2027-03-31
+  - rule: '4.4'
+    reason: L3 by consequence (private, encrypted diary), but there is no browser end-to-end test yet; database-backed tests, a migration test on old-shaped data and an image run on an empty database stand in for it
+    until: 2027-03-31
+  - rule: '1.4.1'
+    reason: Identifiers that are part of stored data or issued credentials still say limen (key-derivation labels and AAD in src/lib/crypto, the login-attempt hash label, the API token prefix, the session cookie names); renaming them would make existing entries undecryptable or sign everyone out
+    until: 2027-03-31
+  - rule: '10.3.1'
+    reason: Postgres with Drizzle since before the standard; the data came from Neon and moving to SQLite would mean rewriting every query and migrating the data
+    until: 2027-03-31
+  - rule: '10.3.5'
+    reason: Single-user app with one master password, so there is no user to key rows by; every row belongs to the one owner
+    until: 2027-03-31
+  - rule: '10.2.2'
+    reason: Environment variables are read in a few places without a schema; a single validated config object is not done yet
+    until: 2027-03-31
+  - rule: '10.5.3'
+    reason: Same as 10.2.2
+    until: 2027-03-31
+  - rule: '11.2.1'
+    reason: The interface has its own palette and shadcn/ui styles; the design tokens are applied at the next redesign (standard 011, 11.8); only the app icon and data-app are adopted now
+    until: 2027-03-31
+  - rule: '11.3.4'
+    reason: Same as 11.2.1
+    until: 2027-03-31

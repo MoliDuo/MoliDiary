@@ -51,7 +51,7 @@ export function shouldRenewSession(
   return remaining > 0 && remaining < SESSION_RENEW_THRESHOLD_SECONDS * 1_000;
 }
 
-export function sessionExpiry(now = new Date()) {
+function sessionExpiry(now = new Date()) {
   return new Date(now.getTime() + SESSION_DURATION_SECONDS * 1_000);
 }
 

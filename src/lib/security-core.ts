@@ -9,9 +9,9 @@ import {
 import { forgetCredentials, formatCredential } from '@/lib/auth/credentials';
 
 export const MIN_PASSWORD_LENGTH = 12;
-export const MAX_PASSWORD_LENGTH = 1024;
+const MAX_PASSWORD_LENGTH = 1024;
 export const MAX_TOKEN_LABEL_LENGTH = 60;
-export const MAX_API_TOKENS = 20;
+const MAX_API_TOKENS = 20;
 
 type LoginLimit = { blocked: boolean; retryAfterSeconds: number };
 

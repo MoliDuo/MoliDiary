@@ -1,30 +1,106 @@
-name: CI
+name: ci
 
 on:
   push:
+    branches: [main]
   pull_request:
+  merge_group:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
-  verify:
+  # A commit the merge queue landed on main is the very commit the queue already tested (same SHA),
+  # so the push run skips the checks instead of repeating them. Direct pushes run everything.
+  verified:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 5
+    permissions:
+      actions: read
+    outputs:
+      skip: ${{ steps.queue.outputs.skip }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 24
-          cache: npm
-      - run: npm ci
-      - run: npm run check
-      - run: npm run build
-        env:
-          DATABASE_URL: postgresql://test:test@localhost:5432/limen_ci
-      - run: npm audit --omit=dev --audit-level=moderate
-      - run: npm run build:tools
+      - id: queue
+        uses: MoliDuo/MoliKit/actions/verified@9b799ce70581440f1598ece62c068dd0b881b955 # v1.2.1
 
-  image:
+  # Format, lint, types, migration consistency, dead code, and the tests with a coverage floor.
+  check:
+    needs: verified
+    if: needs.verified.outputs.skip != 'true'
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v4
-      - run: docker build -t limen:ci .
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        with:
+          node-version-file: .nvmrc
+      - name: Install dependencies
+        run: npm ci
+      - name: Run the full gate
+        run: npm run check
+
+  gitleaks:
+    needs: verified
+    if: needs.verified.outputs.skip != 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      # The official image, not gitleaks-action (paid for organizations); .gitleaks.toml holds the
+      # per-file false positives.
+      - uses: MoliDuo/MoliKit/actions/gitleaks@9b799ce70581440f1598ece62c068dd0b881b955 # v1.2.1
+
+  # The image is what actually runs: build it as the deploy does, run the migration entry on an
+  # empty database, start it, and check that /healthz answers with the commit it was built from.
+  # The image build also covers `next build` and the bundled migration tools.
+  build:
+    needs: verified
+    if: needs.verified.outputs.skip != 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - name: Build the image
+        run: docker build --build-arg VERSION=${{ github.sha }} -t moli-diary:ci .
+      - name: Start a throwaway database
+        run: |
+          docker network create ci
+          docker run -d --name db --network ci \
+            -e POSTGRES_USER=ci -e POSTGRES_PASSWORD=ci-throwaway -e POSTGRES_DB=ci postgres:18
+          for _ in $(seq 1 30); do
+            docker exec db pg_isready -U ci -d ci && exit 0
+            sleep 2
+          done
+          exit 1
+      - name: Migrate and start the app
+        run: |
+          url=postgresql://ci:ci-throwaway@db:5432/ci
+          docker run --rm --network ci -e DATABASE_URL=$url moli-diary:ci node tools/migrate.mjs
+          docker run -d --name app --network ci -e DATABASE_URL=$url -e AI_API_KEY=ci-throwaway moli-diary:ci
+      - name: Check /healthz reports this commit
+        run: |
+          for _ in $(seq 1 30); do
+            body=$(docker exec app node -e 'fetch("http://127.0.0.1:3000/healthz").then((r) => r.text()).then(console.log, () => {})' || true)
+            echo "$body"
+            [ "$body" = "{\"ok\":true,\"version\":\"${{ github.sha }}\"}" ] && exit 0
+            sleep 2
+          done
+          exit 1
+      - name: Show the logs when it fails
+        if: failure()
+        run: |
+          docker logs app || true
+          docker logs db --tail=50 || true
+
+  ci-gate:
+    if: always()
+    needs: [verified, check, gitleaks, build]
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: MoliDuo/MoliKit/actions/ci-gate@9b799ce70581440f1598ece62c068dd0b881b955 # v1.2.1
+        with:
+          needs: ${{ toJSON(needs) }}

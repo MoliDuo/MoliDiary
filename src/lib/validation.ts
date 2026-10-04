@@ -1,6 +1,6 @@
 export const ENTRY_CONTENT_MAX_LENGTH = 200_000;
 export const SEARCH_QUERY_MAX_LENGTH = 200;
-export const BULK_ENTRY_MAX_COUNT = 100;
+const BULK_ENTRY_MAX_COUNT = 100;
 
 export type EntryInput = {
   content: string;

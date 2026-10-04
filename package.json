@@ -1,36 +1,39 @@
 {
-  "name": "limen",
+  "name": "moli-diary",
   "version": "1.0.0",
   "private": true,
+  "license": "UNLICENSED",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/MoliDuo/MoliDiary.git"
+  },
+  "bugs": {
+    "url": "https://github.com/MoliDuo/MoliDiary/issues"
+  },
+  "homepage": "https://diary.xiangyu.pro",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "build:tools": "esbuild scripts/migrate.ts scripts/crypto.ts --bundle --platform=node --format=esm --target=node24 --external:pg-native --banner:js=\"import{createRequire}from'node:module';const require=createRequire(import.meta.url);\" --outdir=dist/tools --out-extension:.js=.mjs",
     "start": "next start",
     "test": "node --import tsx --import ./tests/setup.ts --test tests/*.test.ts tests/*.test.mjs",
+    "test:coverage": "node --import tsx --import ./tests/setup.ts --test --experimental-test-coverage --test-coverage-include='src/**' --test-coverage-lines=82 --test-coverage-branches=89 --test-coverage-functions=91 tests/*.test.ts tests/*.test.mjs",
     "lint": "eslint",
     "lint:fix": "eslint --fix",
     "typecheck": "tsc --noEmit",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "check": "npm run format:check && npm run lint && npm run typecheck && npm test",
+    "check": "npm run format:check && npm run lint && npm run typecheck && npm run db:check && npm run check:dead-code && npm run test:coverage",
     "db:migrate": "tsx scripts/migrate.ts",
     "db:generate": "drizzle-kit generate",
-    "crypto": "tsx scripts/crypto.ts"
+    "crypto": "tsx scripts/crypto.ts",
+    "check:dead-code": "knip",
+    "db:check": "drizzle-kit check"
   },
   "packageManager": "npm@11.17.0",
   "engines": {
     "node": "24.x"
   },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/xiangyumou/Limen.git"
-  },
-  "license": "ISC",
-  "bugs": {
-    "url": "https://github.com/xiangyumou/Limen/issues"
-  },
-  "homepage": "https://github.com/xiangyumou/Limen#readme",
   "dependencies": {
     "@radix-ui/react-alert-dialog": "^1.1.19",
     "@radix-ui/react-slot": "^1.2.4",
@@ -68,6 +71,7 @@
     "eslint": "^9.39.5",
     "eslint-config-next": "^16.2.2",
     "jsdom": "^29.1.1",
+    "knip": "^6.39.0",
     "postcss": "8.5.28",
     "prettier": "^3.9.6",
     "tailwindcss": "^4.2.2",

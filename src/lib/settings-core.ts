@@ -4,9 +4,9 @@ import type { ActionResult } from '@/lib/actions/result';
 import { eq } from 'drizzle-orm';
 
 export const SETTINGS_OWNER_ID = 'owner';
-export const THEMES = ['system', 'light', 'dark'] as const;
-export const EDITOR_FONT_SIZES = ['small', 'medium', 'large'] as const;
-export const EXPORT_FORMATS = ['markdown', 'json'] as const;
+const THEMES = ['system', 'light', 'dark'] as const;
+const EDITOR_FONT_SIZES = ['small', 'medium', 'large'] as const;
+const EXPORT_FORMATS = ['markdown', 'json'] as const;
 
 export type Theme = (typeof THEMES)[number];
 export type EditorFontSize = (typeof EDITOR_FONT_SIZES)[number];
@@ -26,7 +26,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
   defaultExportFormat: 'markdown',
 };
 
-export function isValidTimeZone(value: string) {
+function isValidTimeZone(value: string) {
   try {
     new Intl.DateTimeFormat('en', { timeZone: value }).format();
     return value.length > 0;

@@ -20,13 +20,13 @@ const aiResponseSchema = z
   })
   .strict();
 
-export type AIResponse = z.infer<typeof aiResponseSchema>;
+type AIResponse = z.infer<typeof aiResponseSchema>;
 
 /**
  * Tag candidates offered to the model. Backed by the tags tables, so this is
  * an indexed lookup instead of the full scan of entries.tags it used to be.
  */
-export async function getExistingTags(database: AppDatabase) {
+async function getExistingTags(database: AppDatabase) {
   return listActiveTagNames(database);
 }
 
