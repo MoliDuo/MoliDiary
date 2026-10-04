@@ -1,13 +1,13 @@
 services:
   postgres:
-    image: postgres:17
+    image: postgres:18
     restart: unless-stopped
     environment:
       POSTGRES_USER: limen
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
       POSTGRES_DB: limen
     volumes:
-      - pgdata:/var/lib/postgresql/data
+      - pgdata:/var/lib/postgresql
     healthcheck:
       test: ['CMD-SHELL', 'pg_isready -U limen -d limen']
       interval: 5s
@@ -34,7 +34,7 @@ services:
 
   # Daily pg_dump into ./backups, newest BACKUP_KEEP_DAYS days kept.
   backup:
-    image: postgres:17
+    image: postgres:18
     restart: unless-stopped
     depends_on:
       postgres:

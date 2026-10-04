@@ -64,7 +64,7 @@ docker compose exec app node tools/crypto.mjs status
 
 ## 不用 Docker 运行
 
-需要 Node 24 和 Postgres 16 及以上（迁移用到 `pg_input_is_valid`）。
+需要 Node 24 和 Postgres 16 及以上（推荐与 Compose 一致的 18）（迁移用到 `pg_input_is_valid`）。
 
 ```bash
 npm ci
@@ -94,11 +94,11 @@ npm run db:migrate    # 本地执行；容器启动时会自动执行
 3. 导出并恢复（Neon 连接串放在 shell 变量里，不要写进文件）：
    ```bash
    export NEON_URL='postgresql://…?sslmode=require'
-   docker run --rm postgres:17 pg_dump "$NEON_URL" --format=custom --no-owner --no-privileges \
+   docker run --rm postgres:18 pg_dump "$NEON_URL" --format=custom --no-owner --no-privileges \
      --schema=public --schema=drizzle > neon.dump
    docker compose exec -T postgres pg_restore -U limen -d limen --no-owner --no-privileges < neon.dump
    ```
-   `drizzle` schema 里是迁移记录，带过去后启动时的迁移就是空操作。
+   `drizzle` schema 里是迁移记录，带过去后启动时的迁移就是空操作。恢复时会提示一条 `schema "public" already exists`，这是正常的，其余应无报错。
 4. `docker compose up -d --build`，然后核对：
    - 各表行数与 Neon 一致；
    - `docker compose exec app node tools/crypto.mjs status` 能看到密码槽；
