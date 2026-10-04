@@ -6,13 +6,18 @@
 
 ## 防什么、不防什么
 
-| 场景                                                      | 能否看到日记                   |
-| --------------------------------------------------------- | ------------------------------ |
-| 拿到数据库：Neon 泄露、导出的备份、数据库控制台、SQL 日志 | 不能                           |
-| 拿到 Vercel 项目的环境变量或日志                          | 不能                           |
-| 能修改代码并重新部署的人                                  | 能（可在你下次登录时截获密码） |
-| AI 服务商（`AI_BASE_URL`）                                | 能（正文照常发给它处理）       |
-| 浏览器本地的未保存草稿（`localStorage`）                  | 能                             |
+| 场景                                                         | 能否看到日记                   |
+| ------------------------------------------------------------ | ------------------------------ |
+| 拿到数据库：磁盘或卷、`pg_dump` 备份、数据库控制台、SQL 日志 | 不能                           |
+| 拿到服务器的环境变量或应用日志                               | 不能                           |
+| 在 AI 任务运行期间拿到应用进程的内存                         | 能（见下一节）                 |
+| 能修改代码并重新部署的人                                     | 能（可在你下次登录时截获密码） |
+| AI 服务商（`AI_BASE_URL`）                                   | 能（正文照常发给它处理）       |
+| 浏览器本地的未保存草稿（`localStorage`）                     | 能                             |
+
+## AI 任务与内存中的数据密钥
+
+生成标题、摘要和标签需要把正文发给 AI，所以这些后台任务要用到明文和数据密钥。任务在服务进程内的队列里执行：发起请求时，进程把该请求凭证解开的数据密钥随任务一起放进内存，任务结束（或进程重启）后即丢弃。它不写入数据库、日志或磁盘，所以"服务器不保存任何能解密的秘密"这一点仍然成立；变化只是在 AI 任务排队和运行的这段时间里，能读取应用进程内存的人（比如拿到服务器 root）可以拿到数据密钥。
 
 数据库里仍然是明文的只有元数据：日期、时间、条目数量、密文长度、AI 状态、来源，以及哪些条目共用同一个标签（但看不到标签写的是什么）。
 
@@ -38,7 +43,7 @@
 - 会话和令牌的秘密本身熵足够，包裹密钥用 `HKDF-SHA256(秘密, salt, "limen/credential-slot/v1")` 派生，不需要慢哈希。
 - 换密码只需要新增一个密码槽再删掉旧槽，不用重新加密任何日记。
 - 应用只在库里一个槽都没有、也没有任何密文时，才会生成新的数据密钥（`npm run crypto -- init`）。如果表是空的、但库里已经有密文，会拒绝生成并报错，防止误删表之后悄悄换了一把新密钥。
-- 撤销会话或令牌后，本实例立即失效；其他 Vercel 实例因为有 60 秒的验证缓存，最多延迟一分钟。
+- 在应用里撤销会话或令牌会立即失效。命令行（`crypto revoke-sessions`）是另一个进程，清不到运行中服务的 60 秒验证缓存，所以最多延迟一分钟。
 
 ## 存储格式
 
@@ -74,9 +79,17 @@
 ```js
 // LIMEN_PASSWORD='主密码' node decrypt.mjs —— 还需要 DATABASE_URL
 import { createDecipheriv, hkdfSync, scryptSync } from 'node:crypto';
-import { neon } from '@neondatabase/serverless';
+import pg from 'pg';
 
-const sql = neon(process.env.DATABASE_URL);
+const client = new pg.Client({ connectionString: process.env.DATABASE_URL });
+await client.connect();
+const sql = async (strings, ...values) =>
+  (
+    await client.query(
+      strings.reduce((q, s, i) => q + `$${i}` + s),
+      values,
+    )
+  ).rows;
 const open = (key, b64, aad) => {
   const buf = Buffer.from(b64, 'base64url');
   const d = createDecipheriv('aes-256-gcm', key, buf.subarray(0, 12));
@@ -106,6 +119,7 @@ const read = (v, aad) =>
 for (const e of await sql`select id, created_at, content from entries`) {
   console.log(e.created_at, read(e.content, `entries.content:${e.id}`));
 }
+await client.end();
 ```
 
 日常备份不需要这样做：设置页的导出功能输出的就是解密后的 Markdown 或 JSON。
@@ -127,15 +141,17 @@ npm run crypto -- revoke-sessions   # 只让所有设备退出登录
 
 ## 初始化
 
-全新部署的数据库还没有主密码，先在本地（`.env.local` 的 `DATABASE_URL` 指向生产库）设置：
+全新部署的数据库还没有主密码，先设置一个：
 
 ```bash
-npm run crypto -- init
+docker compose exec app node tools/crypto.mjs init
 ```
+
+不用 Docker 时在项目目录执行 `npm run crypto -- init`。
 
 ## 残留的明文
 
 加密只影响之后写入的数据。上线之前的明文仍然可能留在：
 
-- Neon 的时间点恢复（PITR）历史中，保留期过后才会清除；
-- 上线前创建的 Neon branch 和导出的备份中，确认新版本工作正常后应当删除它们。
+- 迁移前 Neon 的时间点恢复（PITR）历史和 branch 中，下线 Neon 项目后才会清除；
+- 迁移前导出的备份文件，确认新环境工作正常后应当删除。
