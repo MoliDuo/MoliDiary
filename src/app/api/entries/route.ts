@@ -12,9 +12,6 @@ import { serializeApiEntry } from '@/lib/api/entry-serializer';
 import { activeEntries } from '@/lib/db/entry-scope';
 import { getFieldCipher } from '@/lib/crypto/cipher';
 
-export const maxDuration = 60;
-export const preferredRegion = 'sin1';
-
 type RouteDeps = {
   db: AppDatabase;
   createId: () => string;

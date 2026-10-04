@@ -11,9 +11,6 @@ import {
 import { getSession } from '@/lib/auth/session';
 import { redirect } from 'next/navigation';
 
-export const maxDuration = 60;
-export const preferredRegion = 'sin1';
-
 export default async function DashboardLayout({
   children,
   navControls,

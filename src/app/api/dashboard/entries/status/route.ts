@@ -9,8 +9,6 @@ import { loadEntryTagsMap } from '@/lib/db/entry-tags';
 import { getFieldCipher } from '@/lib/crypto/cipher';
 import { activeEntries } from '@/lib/db/entry-scope';
 
-export const maxDuration = 60;
-export const preferredRegion = 'sin1';
 export const MAX_STATUS_IDS = 100;
 
 type BatchStatusDependencies = {

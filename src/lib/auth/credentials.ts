@@ -47,9 +47,10 @@ export function parseCredential(kind: CredentialKind, value: string) {
 
 /**
  * One layout, a page and a few loaders all check the same cookie within a
- * single request, and neon-http makes each check a round trip. A minute of
- * reuse per instance bounds that; revoking on another instance therefore
- * takes up to a minute to bite there.
+ * single request, and each check is a query plus a key unwrap. A minute of
+ * reuse bounds that. Revoking from the app clears the
+ * cache at once; the CLI runs in another process, so its revocations take up
+ * to a minute to bite here.
  */
 const CACHE_TTL_MS = 60 * 1_000;
 const CACHE_LIMIT = 200;

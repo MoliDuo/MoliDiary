@@ -71,9 +71,12 @@ export async function login(
 ): Promise<ActionResult> {
   const result = await handleLoginAttempt(async () => {
     const requestHeaders = await headers();
+    // Only believed when a reverse proxy we run sits in front and overwrites
+    // the header; otherwise any client could pick its own rate-limit bucket.
     const forwardedFor =
-      requestHeaders.get('x-vercel-forwarded-for') ??
-      requestHeaders.get('x-forwarded-for');
+      process.env.TRUST_PROXY === 'true'
+        ? requestHeaders.get('x-forwarded-for')
+        : null;
     const loginResult = await authActions.login(
       formData,
       createLoginAttemptKey(forwardedFor),
