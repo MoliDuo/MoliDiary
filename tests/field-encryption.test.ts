@@ -28,7 +28,11 @@ test('a field decrypts only under the row and column it was written for', () => 
 
   assert.throws(() => cipher.decryptEntryField('b', 'content', sealed));
   assert.throws(() => cipher.decryptEntryField('a', 'title', sealed));
-  const tampered = sealed.slice(0, -2) + (sealed.endsWith('A') ? 'BB' : 'AA');
+  // Flip a real bit: swapping base64 characters can leave the bytes unchanged,
+  // because the last character carries padding bits that are ignored.
+  const body = Buffer.from(sealed.slice('enc:v1:'.length), 'base64url');
+  body[body.length - 1] ^= 1;
+  const tampered = `enc:v1:${body.toString('base64url')}`;
   assert.throws(() => cipher.decryptEntryField('a', 'content', tampered));
   assert.throws(() =>
     new FieldCipher(Buffer.alloc(32, 2)).decrypt(
