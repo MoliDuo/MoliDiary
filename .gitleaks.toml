@@ -1,0 +1,9 @@
+# Per-file false positives, each with a reason (Moli standard 004, 4.7.3).
+[extend]
+useDefault = true
+
+[[allowlists]]
+description = "API documentation: curl examples with a placeholder bearer token"
+paths = [
+  '''docs/api\.md''',
+]
