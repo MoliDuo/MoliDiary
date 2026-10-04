@@ -101,7 +101,7 @@ test('login rejects blocked clients before trying the password', async () => {
   const result = await actions.unlock(passwordForm('x'), 'blocked-client');
   assert.deepEqual(result, {
     ok: false,
-    error: '密码错误或请求过于频繁',
+    error: 'PIN 错误或请求过于频繁',
     retryAfterSeconds: 120,
   });
   assert.equal(unlocked, false);

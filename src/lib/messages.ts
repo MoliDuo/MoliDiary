@@ -118,9 +118,9 @@ export const messages = {
   unlock: {
     submitIdle: '进入',
     submitLoading: '进入中...',
-    password: '主密码',
-    showPassword: '显示密码',
-    hidePassword: '隐藏密码',
+    password: 'PIN',
+    showPassword: '显示 PIN',
+    hidePassword: '隐藏 PIN',
     unexpectedError: '发生了意外错误',
     rateLimited: (remaining: string) => `尝试次数过多，请 ${remaining} 后再试`,
   },

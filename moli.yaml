@@ -4,7 +4,8 @@ kind: web
 level: L3
 
 login:
-  mode: P2
+  mode: P1
+  client_id: moli-diary
 
 deploy:
   platform: docker

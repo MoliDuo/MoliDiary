@@ -1,5 +1,6 @@
 import { failOrphanedPendingEntries } from '@/lib/ai/orphaned-pending';
 import { cleanupLoginAttempts } from '@/lib/auth/rate-limit';
+import { deleteExpiredIdentityData } from '@/lib/auth/identity';
 import { deleteExpiredSessions } from '@/lib/crypto/key-slots';
 import { getAIWorker } from '@/lib/ai/worker';
 import { db, pool } from '@/lib/db';
@@ -22,6 +23,7 @@ export async function runTasks(tasks: Task[]) {
 
 const housekeepingTasks: Task[] = [
   { name: 'expired sessions', run: () => deleteExpiredSessions(db) },
+  { name: 'identity sessions', run: () => deleteExpiredIdentityData(db) },
   { name: 'login attempts', run: () => cleanupLoginAttempts() },
   { name: 'trash purge', run: () => purgeExpiredEntries() },
 ];

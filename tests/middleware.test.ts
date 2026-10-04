@@ -8,7 +8,7 @@ function decide(
 ) {
   return evaluateProxyRequest({
     pathname,
-    access: 'admin',
+    signedIn: true,
     hasSession: false,
     ...overrides,
   });
@@ -43,15 +43,13 @@ test('proxy allows unlocked pages and redirects an unlocked visit to the unlock 
   });
 });
 
-test('proxy refuses anyone the gateway did not vouch for as an administrator', () => {
-  for (const hasSession of [false, true]) {
-    for (const pathname of ['/', '/unlock', '/settings']) {
-      assert.deepEqual(decide(pathname, { access: 'forbidden', hasSession }), {
-        type: 'forbidden',
-      });
-    }
+test('proxy sends anyone who is not signed in to Authelia, whatever the path', () => {
+  for (const pathname of ['/', '/unlock', '/settings']) {
+    assert.deepEqual(decide(pathname, { signedIn: false }), { type: 'login' });
   }
-  assert.deepEqual(decide('/healthz', { access: 'forbidden' }), {
+  assert.deepEqual(decide('/healthz', { signedIn: false }), { type: 'next' });
+  assert.deepEqual(decide('/auth/callback', { signedIn: false }), {
     type: 'next',
   });
+  assert.equal(shouldBypassProxy('/auth/login'), true);
 });

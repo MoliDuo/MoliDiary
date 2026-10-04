@@ -7,16 +7,16 @@ if (!process.env.DATABASE_URL && typeof process.loadEnvFile === 'function') {
   if (envFile) process.loadEnvFile(envFile);
 }
 
-const MIN_PASSWORD_LENGTH = 12;
+const MIN_PASSWORD_LENGTH = 6;
 
 const USAGE = `Usage: npm run crypto -- <command>
 
   status               How many key slots of each kind exist
-  init                 Set the master password on a new, empty database
-  change-password      Replace the master password and sign out every device
+  init                 Set the PIN on a new, empty database
+  change-password      Replace the PIN and lock every device
   revoke-sessions      Sign out every device
 
-Passwords are asked for on the terminal; piped input is read one per line.
+PINs are asked for on the terminal; piped input is read one per line.
 DATABASE_URL comes from the environment or .env.local. See docs/encryption.md.`;
 
 let pipedLines: string[] | null = null;
@@ -61,14 +61,14 @@ async function askHidden(prompt: string): Promise<string> {
 }
 
 async function askNewPassword() {
-  const first = await askHidden('New password: ');
+  const first = await askHidden('New PIN: ');
   if (first.length < MIN_PASSWORD_LENGTH) {
     throw new Error(
-      `The password needs at least ${MIN_PASSWORD_LENGTH} characters.`,
+      `The PIN needs at least ${MIN_PASSWORD_LENGTH} characters.`,
     );
   }
   const second = await askHidden('Repeat it: ');
-  if (first !== second) throw new Error('The two passwords differ.');
+  if (first !== second) throw new Error('The two PINs differ.');
   return first;
 }
 
@@ -95,20 +95,20 @@ async function main() {
     case 'init': {
       if ((await slots.countPasswordSlots(db)) > 0) {
         throw new Error(
-          'A master password is already set. Use change-password to replace it.',
+          'A PIN is already set. Use change-password to replace it.',
         );
       }
       await slots.unlockDataKey(db, await askNewPassword());
-      console.log('Master password set. Keep it in a password manager.');
+      console.log('PIN set. Keep it in a password manager.');
       return;
     }
     case 'change-password': {
-      const current = await askHidden('Current password: ');
+      const current = await askHidden('Current PIN: ');
       const next = await askNewPassword();
       if (!(await slots.changePassword(db, current, next))) {
-        throw new Error('Wrong password.');
+        throw new Error('Wrong PIN.');
       }
-      console.log('Password changed. Every device has been signed out.');
+      console.log('PIN changed. Every device has been locked.');
       return;
     }
     case 'revoke-sessions': {

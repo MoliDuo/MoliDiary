@@ -216,7 +216,7 @@ test('changing the password keeps this device and API tokens, signs out the rest
   );
   assert.deepEqual(wrong, {
     ok: false,
-    error: '当前密码不正确',
+    error: '当前 PIN 不正确',
     retryAfterSeconds: undefined,
   });
   assert.equal(
@@ -309,4 +309,14 @@ test('login opens the password slot, or asks for setup when there is none', asyn
   await testDataKey(db);
   assert.equal(await unlockForSession('wrong', db), null);
   assert.ok(Buffer.isBuffer(await unlockForSession(TEST_PASSWORD, db)));
+});
+
+test('a PIN of six characters is allowed, and short ones are called out', async () => {
+  const { MIN_PASSWORD_LENGTH, pinStrengthNote } =
+    await import('@/lib/security-core');
+  assert.equal(MIN_PASSWORD_LENGTH, 6);
+  assert.equal(pinStrengthNote(''), null);
+  assert.match(pinStrengthNote('123456') ?? '', /纯数字/);
+  assert.match(pinStrengthNote('abc123') ?? '', /较短/);
+  assert.equal(pinStrengthNote('a-long-enough-pin'), null);
 });

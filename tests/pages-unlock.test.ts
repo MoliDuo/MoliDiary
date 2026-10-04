@@ -41,7 +41,7 @@ test('unlock action converts backend failures into recoverable feedback', async 
 
   const invalidPassword = {
     ok: false as const,
-    error: '密码错误或请求过于频繁',
+    error: 'PIN 错误或请求过于频繁',
   };
   assert.equal(
     await handleUnlockAttempt(

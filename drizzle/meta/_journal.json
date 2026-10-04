@@ -78,6 +78,13 @@
       "when": 1790686100019,
       "tag": "0011_tag_hmac_required",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1791089809501,
+      "tag": "0012_oidc_identity",
+      "breakpoints": true
     }
   ]
 }

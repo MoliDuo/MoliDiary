@@ -163,8 +163,8 @@ export const settings = pgTable(
  * signing in or revoking a token never re-encrypts an entry. See
  * docs/encryption.md for the exact format.
  *
- * - password: scrypt over the owner's password. Opening it is the login check.
- * - session: one per signed-in browser; the secret lives only in the cookie.
+ * - password: scrypt over the owner's PIN. Opening it is the unlock check.
+ * - session: one per unlocked browser; the secret lives only in the cookie.
  * - api_token: one per API client; the secret lives only in the client.
  */
 export const encryptionKeySlots = pgTable(
@@ -193,3 +193,36 @@ export const encryptionKeySlots = pgTable(
     ),
   ],
 );
+
+/**
+ * One row per sign-in in flight (Moli standard 008, 8.5.2): what the callback
+ * must find again to accept the answer. Keyed by the hash of `state`, deleted
+ * when used, and worthless after ten minutes.
+ */
+export const oidcLogins = pgTable('oidc_logins', {
+  stateHash: text('state_hash').primaryKey(),
+  nonce: text('nonce').notNull(),
+  codeVerifier: text('code_verifier').notNull(),
+  returnTo: text('return_to').notNull().default('/'),
+  expiresAt: timestamp('expires_at', {
+    withTimezone: true,
+    mode: 'date',
+  }).notNull(),
+});
+
+/**
+ * Who Authelia said was signed in, as a session of our own (8.5.4). The
+ * cookie holds a random token; only its hash is stored here. Nothing from
+ * Authelia is kept, and only administrators ever get a row.
+ */
+export const identitySessions = pgTable('identity_sessions', {
+  idHash: text('id_hash').primaryKey(),
+  username: text('username').notNull(),
+  expiresAt: timestamp('expires_at', {
+    withTimezone: true,
+    mode: 'date',
+  }).notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true, mode: 'date' })
+    .notNull()
+    .defaultNow(),
+});

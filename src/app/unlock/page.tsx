@@ -61,7 +61,7 @@ function UnlockFields({
           autoFocus
           disabled={isPending || blocked}
           className="h-11 px-11 text-center font-mono text-base tracking-widest"
-          placeholder="主密码"
+          placeholder="PIN"
         />
         {/* Typing a long password blind on a phone means starting over on
             every mistype. */}

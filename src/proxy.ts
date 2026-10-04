@@ -7,8 +7,14 @@ import {
   sessionCookieOptions,
   shouldRenewSession,
 } from '@/lib/auth/session';
-import { unlockPath, stripLegacyLocalePath } from '@/lib/pathname';
-import { checkGatewayAccess, type GatewayAccess } from '@/lib/auth/identity';
+import { loginPath, unlockPath, stripLegacyLocalePath } from '@/lib/pathname';
+import {
+  IDENTITY_COOKIE_NAME,
+  identityCookieOptions,
+  readIdentity,
+  renewIdentitySession,
+  shouldRenewIdentity,
+} from '@/lib/auth/identity';
 import {
   applySecurityHeaders,
   buildContentSecurityPolicy,
@@ -17,14 +23,12 @@ import {
 
 type ProxyDecisionInput = {
   pathname: string;
-  access: GatewayAccess;
+  signedIn: boolean;
   hasSession: boolean;
 };
 
 type ProxyDecision =
-  | { type: 'forbidden' }
-  | { type: 'redirect'; location: string }
-  | { type: 'next' };
+  { type: 'login' } | { type: 'redirect'; location: string } | { type: 'next' };
 
 // /healthz answers the deploy script and uptime monitors, which have no
 // session. The rest are served from the app root (the manifest by Next's metadata
@@ -43,24 +47,20 @@ const PUBLIC_ASSET_PATHS = new Set([
   '/apple-icon.png',
 ]);
 
-const FORBIDDEN_PAGE =
-  '<!doctype html><html lang="zh-CN"><meta charset="utf-8">' +
-  '<meta name="viewport" content="width=device-width, initial-scale=1">' +
-  '<title>权限不足</title><body style="font-family:system-ui;text-align:center;margin-top:20vh">' +
-  '<h1>权限不足</h1><p>只有管理员可以访问 Moli Diary。</p></body></html>';
-
 export function shouldBypassProxy(pathname: string) {
   return (
     pathname.startsWith('/_next/static/') ||
     pathname.startsWith('/_next/image/') ||
     pathname.startsWith('/api/') ||
+    // The sign-in flow runs before there is any session to check.
+    pathname.startsWith('/auth/') ||
     PUBLIC_ASSET_PATHS.has(pathname)
   );
 }
 
 export function evaluateProxyRequest({
   pathname,
-  access,
+  signedIn,
   hasSession,
 }: ProxyDecisionInput): ProxyDecision {
   if (shouldBypassProxy(pathname)) return { type: 'next' };
@@ -68,10 +68,9 @@ export function evaluateProxyRequest({
   const normalizedPath = stripLegacyLocalePath(pathname);
   if (normalizedPath !== pathname)
     return { type: 'redirect', location: normalizedPath };
-  // The gateway has already sent anyone who is not signed in to Authelia, so
-  // what reaches here is either an administrator or someone who must not see
-  // the diary at all (standard 008, 8.4.2a).
-  if (access !== 'admin') return { type: 'forbidden' };
+  // Signing in is Authelia's job: the app has no page of its own for it
+  // (standard 008, 8.4.4), it just sends the browser there.
+  if (!signedIn) return { type: 'login' };
   if (pathname === unlockPath()) {
     return hasSession ? { type: 'redirect', location: '/' } : { type: 'next' };
   }
@@ -84,12 +83,13 @@ export async function proxy(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
   if (shouldBypassProxy(pathname)) return NextResponse.next();
 
-  const access = checkGatewayAccess(request.headers);
+  const identityToken = request.cookies.get(IDENTITY_COOKIE_NAME)?.value;
+  const identity = await readIdentity(db, identityToken);
   const cookie = request.cookies.get(SESSION_COOKIE_NAME)?.value;
-  const session = access === 'admin' ? await readSession(db, cookie) : null;
+  const session = identity ? await readSession(db, cookie) : null;
   const decision = evaluateProxyRequest({
     pathname,
-    access,
+    signedIn: Boolean(identity),
     hasSession: Boolean(session),
   });
   const nonce = createRequestNonce();
@@ -99,15 +99,24 @@ export async function proxy(request: NextRequest) {
   requestHeaders.set('Content-Security-Policy', contentSecurityPolicy);
 
   let response: NextResponse;
-  if (decision.type === 'forbidden') {
-    response = new NextResponse(FORBIDDEN_PAGE, {
-      status: 403,
-      headers: { 'Content-Type': 'text/html; charset=utf-8' },
-    });
+  if (decision.type === 'login') {
+    const target = new URL(loginPath(), request.url);
+    target.searchParams.set(
+      'returnTo',
+      `${request.nextUrl.pathname}${request.nextUrl.search}`,
+    );
+    response = NextResponse.redirect(target);
   } else if (decision.type === 'redirect') {
     response = NextResponse.redirect(new URL(decision.location, request.url));
   } else {
     response = NextResponse.next({ request: { headers: requestHeaders } });
+  }
+  if (identity && identityToken && shouldRenewIdentity(identity)) {
+    response.cookies.set(
+      IDENTITY_COOKIE_NAME,
+      identityToken,
+      identityCookieOptions(await renewIdentitySession(db, identityToken)),
+    );
   }
   if (session && cookie && shouldRenewSession(session)) {
     // Sliding expiry: an active reader never hits the 7-day wall.
@@ -116,8 +125,8 @@ export async function proxy(request: NextRequest) {
       cookie,
       sessionCookieOptions(await renewSession(db, session)),
     );
-  } else if (access === 'admin' && !session && cookie) {
-    // Signed out elsewhere, expired or tampered: drop it so the browser stops
+  } else if (identity && !session && cookie) {
+    // Locked elsewhere, expired or tampered: drop it so the browser stops
     // sending it.
     response.cookies.set(
       SESSION_COOKIE_NAME,

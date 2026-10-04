@@ -2,18 +2,16 @@ import { cookies, headers } from 'next/headers';
 import type { AppDatabase } from '@/lib/db';
 import { verifyCredential } from '@/lib/auth/credentials';
 import { SESSION_COOKIE_NAME, UnauthorizedError } from '@/lib/auth/session';
-import { checkGatewayAccess } from '@/lib/auth/identity';
+import { getIdentity } from '@/lib/auth/identity';
 import { readBearerToken } from '@/lib/auth/security';
 
 /**
  * The data key for this request, opened with the credential it carries: the
- * session cookie in the browser (only for the administrator the gateway
- * vouches for), the Bearer token from an API client. The default source
+ * session cookie in the browser (only for a signed-in administrator), the Bearer token from an API client. The default source
  * behind getFieldCipher (lib/crypto/cipher.ts).
  */
 export async function requestDataKey(database: AppDatabase) {
-  const requestHeaders = await headers();
-  if (checkGatewayAccess(requestHeaders) === 'admin') {
+  if (await getIdentity(database)) {
     const session = await verifyCredential(
       database,
       'session',
@@ -25,7 +23,7 @@ export async function requestDataKey(database: AppDatabase) {
   const token = await verifyCredential(
     database,
     'api_token',
-    readBearerToken(requestHeaders.get('authorization')),
+    readBearerToken((await headers()).get('authorization')),
   );
   if (token) return token.dataKey;
 

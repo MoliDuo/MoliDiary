@@ -21,7 +21,7 @@ curl -H "Authorization: Bearer limen_xxxx.yyyy" <url>
 { "error": "Unauthorized" }
 ```
 
-主密码不能用作 Bearer 令牌。每个令牌都能解开日记的数据密钥，但彼此独立，可以单独撤销；撤销后最多一分钟内在所有实例上失效。
+PIN 不能用作 Bearer 令牌。每个令牌都能解开日记的数据密钥，但彼此独立，可以单独撤销；撤销后最多一分钟内在所有实例上失效。
 
 ## 条目 API
 

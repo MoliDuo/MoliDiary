@@ -21,9 +21,9 @@ type AuthActionDeps = {
   clearSessionCookie: () => Promise<void>;
 };
 
-const INVALID_PASSWORD_MESSAGE = '密码错误或请求过于频繁';
+const INVALID_PASSWORD_MESSAGE = 'PIN 错误或请求过于频繁';
 export const UNINITIALIZED_MESSAGE =
-  '尚未设置密码，请先在服务器上运行 npm run crypto -- init';
+  '尚未设置 PIN，请先在服务器上运行 npm run crypto -- init';
 
 // scrypt memory is the cost here; there is no reason to hash a novel.
 const MAX_PASSWORD_LENGTH = 1024;
