@@ -1,0 +1,16 @@
+# A throwaway Postgres for development: matches .env.example's DATABASE_URL.
+#   docker compose -f docker-compose.local.yml up -d
+services:
+  postgres:
+    image: postgres:18
+    environment:
+      POSTGRES_USER: limen
+      POSTGRES_PASSWORD: limen
+      POSTGRES_DB: limen
+    ports:
+      - '127.0.0.1:5432:5432'
+    volumes:
+      - pgdata:/var/lib/postgresql
+
+volumes:
+  pgdata:

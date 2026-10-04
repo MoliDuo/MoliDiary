@@ -66,3 +66,27 @@ test('a failing job does not stop the ones behind it', async () => {
   }
   assert.equal(ran, true);
 });
+
+test('draining waits for running jobs and gives up after the grace period', async () => {
+  const { drainAIWorker } = await import('@/lib/background-tasks');
+  const { getAIWorker } = await import('@/lib/ai/worker');
+  const worker = getAIWorker();
+
+  let finished = false;
+  worker.enqueue({
+    dataKey: Buffer.alloc(32),
+    run: async () => {
+      await new Promise((resolve) => setTimeout(resolve, 20));
+      finished = true;
+    },
+  });
+  assert.equal(await drainAIWorker(1_000), 'idle');
+  assert.equal(finished, true);
+
+  worker.enqueue({
+    dataKey: Buffer.alloc(32),
+    run: () => new Promise((resolve) => setTimeout(resolve, 150)),
+  });
+  assert.equal(await drainAIWorker(10), 'timeout');
+  await worker.idle();
+});

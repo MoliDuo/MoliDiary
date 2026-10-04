@@ -144,7 +144,7 @@ npm run crypto -- revoke-sessions   # 只让所有设备退出登录
 全新部署的数据库还没有主密码，先设置一个：
 
 ```bash
-docker compose exec app node tools/crypto.mjs init
+docker compose --env-file .tag exec limen node tools/crypto.mjs init
 ```
 
 不用 Docker 时在项目目录执行 `npm run crypto -- init`。

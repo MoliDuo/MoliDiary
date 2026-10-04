@@ -18,16 +18,7 @@ Limen 是一个使用 Next.js 16 App Router 构建的个人日记应用，具有
 - npm 11
 - Postgres 16 及以上（或直接使用 Docker Compose，见下）
 
-### 用 Docker Compose 运行
-
-```bash
-cp .env.example .env     # 填写 POSTGRES_PASSWORD 和 AI_API_KEY
-mkdir -p backups
-docker compose up -d --build
-docker compose exec app node tools/crypto.mjs init   # 全新数据库：设置主密码
-```
-
-HTTPS、备份、从旧环境迁移数据见 [docs/deployment.md](docs/deployment.md)。以下是本地开发流程。
+线上部署(Traefik 后的 Docker、回滚、数据迁移、备份)见 [docs/deploy.md](docs/deploy.md)。以下是本地开发流程。
 
 ### 1. 安装依赖
 
@@ -38,13 +29,13 @@ npm install
 
 ### 2. 配置环境变量
 
-复制 `.env.example` 并填写相关信息：
+先启动一个本地 Postgres(`docker compose -f docker-compose.local.yml up -d`),再复制 `.env.example` 并填写相关信息：
 
 ```bash
 cp .env.example .env.local
 ```
 
-开发时在 `.env.local` 里设置指向本地 Postgres 的 `DATABASE_URL`；全部变量说明见 [docs/deployment.md](docs/deployment.md#1-准备配置)。
+开发时在 `.env.local` 里设置指向本地 Postgres 的 `DATABASE_URL`；全部变量说明见 [docs/deploy.md](docs/deploy.md#1-名字与用途)。
 
 ### 3. 初始化数据库
 
@@ -90,7 +81,7 @@ npm run check
 ## 详细文档
 
 - [API 参考](docs/api.md) — REST API 端点、认证、分页、请求/响应示例
-- [部署指南](docs/deployment.md) — Docker Compose、HTTPS、迁移数据、备份、凭证轮换
+- [部署](docs/deploy.md) — Traefik 后的 Docker 部署、回滚、迁移数据、备份、凭证轮换
 - [内容加密](docs/encryption.md) — 威胁模型、密钥结构、存储格式、离线解密、更换主密码
 
 ## 特性
