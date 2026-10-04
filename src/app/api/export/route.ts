@@ -69,7 +69,7 @@ export function createExportRouteHandler({
       if (wantsJson(request)) {
         return Response.json({ error: 'unauthorized' }, { status: 401 });
       }
-      return Response.redirect(new URL('/login', request.url), 303);
+      return Response.redirect(new URL('/unlock', request.url), 303);
     }
 
     let filters: ExportFilters;

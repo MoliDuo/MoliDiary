@@ -2,8 +2,8 @@ export function dashboardPath() {
   return '/';
 }
 
-export function loginPath() {
-  return '/login';
+export function unlockPath() {
+  return '/unlock';
 }
 
 export function entryDetailPath(id: string) {

@@ -3,10 +3,10 @@ import { countPasswordSlots, unlockWithPassword } from '@/lib/crypto/key-slots';
 import type { UnlockResult } from './action-core';
 
 /**
- * The password check is opening a password slot. A database without one has
+ * Checking the password is opening a password slot. A database without one has
  * never been set up; `npm run crypto -- init` does that.
  */
-export async function unlockForLogin(
+export async function unlockForSession(
   password: string,
   database: AppDatabase = db,
 ): Promise<UnlockResult> {

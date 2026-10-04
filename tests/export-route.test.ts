@@ -28,12 +28,12 @@ function handler(overrides: Record<string, unknown> = {}) {
   } as never);
 }
 
-test('export route redirects unauthenticated requests to login', async () => {
+test('export route redirects locked requests to the unlock page', async () => {
   const response = await handler({ authorize: () => false })(
     new Request('https://diary.test/api/export?format=json'),
   );
   assert.equal(response.status, 303);
-  assert.equal(response.headers.get('location'), 'https://diary.test/login');
+  assert.equal(response.headers.get('location'), 'https://diary.test/unlock');
 });
 
 for (const query of ['format=xml', 'format=json&from=bad']) {

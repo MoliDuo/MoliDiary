@@ -1,6 +1,6 @@
 import type { ActionResult } from '@/lib/actions/result';
 
-type LoginLimit = { blocked: boolean; retryAfterSeconds: number };
+type UnlockLimit = { blocked: boolean; retryAfterSeconds: number };
 
 /**
  * What the password opened: the data key, nothing (wrong password), or
@@ -9,9 +9,9 @@ type LoginLimit = { blocked: boolean; retryAfterSeconds: number };
 export type UnlockResult = Buffer | null | 'uninitialized';
 
 type AuthActionDeps = {
-  unlock: (password: string) => Promise<UnlockResult>;
-  getRateLimit: (key: string) => Promise<LoginLimit>;
-  recordFailure: (key: string) => Promise<LoginLimit & { failures: number }>;
+  openKey: (password: string) => Promise<UnlockResult>;
+  getRateLimit: (key: string) => Promise<UnlockLimit>;
+  recordFailure: (key: string) => Promise<UnlockLimit & { failures: number }>;
   clearFailures: (key: string) => Promise<void>;
   createSession: (
     dataKey: Buffer,
@@ -21,7 +21,7 @@ type AuthActionDeps = {
   clearSessionCookie: () => Promise<void>;
 };
 
-const INVALID_LOGIN_MESSAGE = '密码错误或请求过于频繁';
+const INVALID_PASSWORD_MESSAGE = '密码错误或请求过于频繁';
 export const UNINITIALIZED_MESSAGE =
   '尚未设置密码，请先在服务器上运行 npm run crypto -- init';
 
@@ -29,7 +29,7 @@ export const UNINITIALIZED_MESSAGE =
 const MAX_PASSWORD_LENGTH = 1024;
 
 export function createAuthActions({
-  unlock,
+  openKey,
   getRateLimit,
   recordFailure,
   clearFailures,
@@ -39,12 +39,12 @@ export function createAuthActions({
   clearSessionCookie,
 }: AuthActionDeps) {
   return {
-    async login(formData: FormData, clientKey: string): Promise<ActionResult> {
+    async unlock(formData: FormData, clientKey: string): Promise<ActionResult> {
       const limit = await getRateLimit(clientKey);
       if (limit.blocked) {
         return {
           ok: false,
-          error: INVALID_LOGIN_MESSAGE,
+          error: INVALID_PASSWORD_MESSAGE,
           retryAfterSeconds: limit.retryAfterSeconds,
         };
       }
@@ -54,7 +54,7 @@ export function createAuthActions({
         typeof password === 'string' &&
         password.length > 0 &&
         password.length <= MAX_PASSWORD_LENGTH
-          ? await unlock(password)
+          ? await openKey(password)
           : null;
       if (unlocked === 'uninitialized') {
         return { ok: false, error: UNINITIALIZED_MESSAGE };
@@ -63,7 +63,7 @@ export function createAuthActions({
         const failed = await recordFailure(clientKey);
         return {
           ok: false,
-          error: INVALID_LOGIN_MESSAGE,
+          error: INVALID_PASSWORD_MESSAGE,
           retryAfterSeconds: failed.blocked
             ? failed.retryAfterSeconds
             : undefined,
@@ -76,7 +76,7 @@ export function createAuthActions({
       return { ok: true, data: undefined };
     },
 
-    async logout(): Promise<ActionResult> {
+    async lock(): Promise<ActionResult> {
       await destroySession();
       await clearSessionCookie();
       return { ok: true, data: undefined };

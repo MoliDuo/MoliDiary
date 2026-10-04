@@ -1,10 +1,11 @@
-import { cookies } from 'next/headers';
+import { cookies, headers } from 'next/headers';
 import { db, type AppDatabase } from '@/lib/db';
 import {
   createCredentialSlot,
   deleteCredentialSlot,
   updateCredentialSlot,
 } from '@/lib/crypto/key-slots';
+import { checkGatewayAccess } from '@/lib/auth/identity';
 import {
   forgetCredentials,
   formatCredential,
@@ -12,6 +13,10 @@ import {
 } from '@/lib/auth/credentials';
 
 /**
+ * The unlock session: the proof that this browser has typed the master
+ * password. Who the person is comes from the gateway (lib/auth/identity.ts);
+ * both are needed to read the diary.
+ *
  * Sessions are key slots (lib/crypto/key-slots.ts): the cookie holds the only
  * copy of the secret that opens the session's wrapped data key. Signing out
  * or changing the password deletes the slot, which ends the session on every
@@ -92,7 +97,9 @@ export async function readSession(
   return { id: credential.slotId, expiresAt: credential.expiresAt };
 }
 
+/** Null unless the gateway vouches for an administrator and the browser is unlocked. */
 export async function getSession(database: AppDatabase = db) {
+  if (checkGatewayAccess(await headers()) !== 'admin') return null;
   return readSession(
     database,
     (await cookies()).get(SESSION_COOKIE_NAME)?.value,

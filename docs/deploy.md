@@ -18,7 +18,7 @@ Moli Diary 部署在 Moli 服务器上的 Docker 里,经 Traefik 和 Cloudflare 
 | `DATABASE_URL`                                        | 是   | `postgresql://diary:<密码>@postgres:5432/moli-diary-db`                                                                          |
 | `AI_API_KEY`                                          | 是   | OpenAI 兼容服务的 Key                                                                                                            |
 | `AI_BASE_URL` / `AI_MODEL`                            | 否   | 默认 `https://api.openai.com/v1` / `gpt-4o-mini`                                                                                 |
-| `TRUST_PROXY`                                         | 否   | 在 Traefik 和 Tunnel 后面设为 `true`。登录限流取 `X-Forwarded-For` 里**从右往左数的第一个公网地址**;不设则所有失败共用一个限流桶 |
+| `TRUST_PROXY`                                         | 否   | 在 Traefik 和 Tunnel 后面设为 `true`。解锁限流取 `X-Forwarded-For` 里**从右往左数的第一个公网地址**;不设则所有失败共用一个限流桶 |
 | `AI_CONCURRENCY` / `AI_TIMEOUT_MS` / `AI_MAX_RETRIES` | 否   | AI 并发数(2)、单次请求超时(120000)、失败重试次数(3)                                                                              |
 | `DATABASE_POOL_MAX` / `DATABASE_STATEMENT_TIMEOUT_MS` | 否   | 连接池大小(10)、语句超时(30000)                                                                                                  |
 | `BACKUP_INTERVAL_HOURS` / `BACKUP_KEEP_DAYS`          | 否   | 每日备份的间隔(24)和保留天数(14)                                                                                                 |
@@ -54,8 +54,9 @@ Moli Diary 部署在 Moli 服务器上的 Docker 里,经 Traefik 和 Cloudflare 
    docker compose --env-file .tag exec diary node tools/crypto.mjs init
    ```
 
-8. 登录后在 **设置 → API 令牌** 里为每个外部客户端(如 iOS 快捷指令)生成令牌。
-9. 启动每日备份:`docker compose --env-file .tag up -d backup`(`up -d` 本来也会带上)。并把 `backups/` 同步到服务器之外(规范 005 的 5.7.4)。
+8. 管理员在 Authelia 里为这个域名加访问规则（不在本仓库里改），见下面“网关规则”。
+9. 登录并解锁后在 **设置 → API 令牌** 里为每个外部客户端(如 iOS 快捷指令)生成令牌。
+10. 启动每日备份:`docker compose --env-file .tag up -d backup`(`up -d` 本来也会带上)。并把 `backups/` 同步到服务器之外(规范 005 的 5.7.4)。
 
 ## 3. 日常部署
 
@@ -88,12 +89,27 @@ cd /data/apps/diary
 docker compose --env-file .tag exec -T postgres pg_restore -U diary -d moli-diary-db --clean --if-exists --no-owner < backups/<文件名>.dump
 ```
 
+### 网关规则(由管理员在 Authelia 配置,规范 008 的 8.6)
+
+应用不自己登录,靠 Traefik 上的 `authelia@file` 中间件。Authelia 的 `access_control` 里需要这两条,**按顺序、先匹配的生效**,其余路径默认拒绝:
+
+```yaml
+- domain: diary.xiangyu.pro
+  resources: ['^/healthz$', '^/api/entries(/.*)?$']
+  policy: bypass # 部署脚本和外部客户端(快捷指令)没有人在场,用 API 令牌认证(规范 008 的 8.8)
+- domain: diary.xiangyu.pro
+  subject: 'group:admins'
+  policy: two_factor # 其余所有路径:仅管理员 + 双因素
+```
+
+`/api/dashboard/*` 和 `/api/export` 是浏览器页面用的接口,**不要放行**,它们靠网关身份加解锁 cookie 认证。应用只在 `Remote-Groups` 含 `admins` 时才放行;本地开发(`NODE_ENV` 不是 `production`)没有网关,不检查身份。
+
 ## 5. 上线后的验证
 
 1. `https://diary.xiangyu.pro/healthz` 返回 200,`version` 是刚部署的提交。
-2. 打开 <https://diary.xiangyu.pro>,用主密码登录。
+2. 打开 <https://diary.xiangyu.pro>,先在 Authelia 登录(`admins` 组、双因素),再用主密码解锁。非管理员账号应看到“权限不足”(403)。
 3. 新建一篇日记,等 AI 生成标题、摘要和标签。
-4. 搜索它;退出登录后会话应失效。
+4. 搜索它;在设置里点“锁定”后解锁会话应失效,再进来要重新输入主密码。
 5. 用 API 令牌调用一次(撤销后应返回 `401`):
 
    ```bash
@@ -102,7 +118,7 @@ docker compose --env-file .tag exec -T postgres pg_restore -U diary -d moli-diar
      -d '{"content":"测试条目内容"}'
    ```
 
-6. `docker restart diary` 后仍保持登录。
+6. `docker restart diary` 后仍保持解锁。
 
 ## 6. 常见故障
 
@@ -112,8 +128,8 @@ docker compose --env-file .tag exec -T postgres pg_restore -U diary -d moli-diar
 | `deploy` 报"缺少 docker-compose.yml" | 应用目录没建好(第 2 节第 1 步)。                                                                         |
 | 迁移失败,部署回滚                    | 看部署日志里的迁移输出;数据库在失败时保持原样。修好迁移后重新推送。                                      |
 | `/healthz` 返回 503                  | 数据库连不上:看 `docker logs diary-postgres`,核对 `.env` 里 `DATABASE_URL` 和 `POSTGRES_PASSWORD` 一致。 |
-| 登录后回到登录页                     | 会话 cookie 要求 HTTPS:确认访问的是 `https://`,并且经过 Traefik 的 `websecure`。                         |
-| 登录一直提示尝试过多                 | 没设 `TRUST_PROXY=true`,所有失败共用一个桶;或来源 IP 被判成同一个地址。                                  |
+| 解锁后又回到解锁页                   | 会话 cookie 要求 HTTPS:确认访问的是 `https://`,并且经过 Traefik 的 `websecure`。                         |
+| 解锁一直提示尝试过多                 | 没设 `TRUST_PROXY=true`,所有失败共用一个桶;或来源 IP 被判成同一个地址。                                  |
 | 条目一直是"处理中"后变成失败         | 看 `docker logs diary` 里的 AI 报错(Key、地址、超时);修好后在界面里重新整理。                            |
 
 ## 7. 本地开发
@@ -149,7 +165,7 @@ npm run dev
 4. 完成第 2 节第 4–6 步触发部署,然后核对:
    - 各表行数与 Neon 一致;
    - `docker compose --env-file .tag exec diary node tools/crypto.mjs status` 能看到密码槽;
-   - 用原主密码登录,打开几篇旧日记、搜索一次、导出一份,确认能解密;
+   - 用原主密码解锁,打开几篇旧日记、搜索一次、导出一份,确认能解密;
    - 用旧的 API 令牌调用一次 API。
 
 5. 把域名切到新服务。Neon 和 Vercel 项目保留一两周作回滚,之后下线,并在 Neon 控制台删除或轮换凭据。
@@ -176,7 +192,7 @@ docker exec -i diary-restore-test pg_restore -U postgres -d postgres --no-owner 
 
 - **主密码**:在 **设置 → 主密码** 里修改。其他设备会被退出,API 令牌不受影响。详见 [encryption.md](encryption.md#更换主密码)。
 - **API 令牌**:在 **设置 → API 令牌** 里生成新令牌、更新客户端,再撤销旧令牌。
-- **让所有设备退出**:`docker compose --env-file .tag exec diary node tools/crypto.mjs revoke-sessions`。
+- **让所有设备锁定**:`docker compose --env-file .tag exec diary node tools/crypto.mjs revoke-sessions`。
 
 ## 11. 安全注意事项
 
@@ -184,6 +200,6 @@ docker exec -i diary-restore-test pg_restore -U postgres -d postgres --no-owner 
 - 主密码只应存放在密码管理器中;服务器上没有它的副本,一旦遗忘,日记就无法解密。
 - 主密码也是加密密钥:数据库泄露后,攻击者可以离线暴力猜测它,因此必须足够长、足够随机。
 - API 令牌能读写全部日记,只放在受信任的客户端中;每个客户端单独一个,不用就撤销。
-- 登录限流按 IP 的 SHA-256 记录,拿到数据库的人可以反推出最近 7 天尝试登录的 IP。
+- 解锁限流按 IP 的 SHA-256 记录,拿到数据库的人可以反推出最近 7 天尝试解锁的 IP。
 - 容器不发布端口到宿主机,Postgres 只在应用自己的内部网络里。
 - Traefik 的 `security-headers` 中间件也会加 HSTS;应用自己的 nonce CSP 和其他安全头不受影响。

@@ -152,7 +152,7 @@ test('export filenames carry the time in the saved zone', () => {
   );
 });
 
-test('signing out moved off the header and onto settings', () => {
+test('locking moved off the header and onto settings', () => {
   const layout = readFileSync(
     new URL('../src/app/(dashboard)/layout.tsx', import.meta.url),
     'utf8',
@@ -162,13 +162,13 @@ test('signing out moved off the header and onto settings', () => {
     'utf8',
   );
   // It used to sit next to 新建, an easy mis-tap on mobile with no confirm.
-  assert.doesNotMatch(layout, /LogoutButton/);
-  assert.match(settings, /<LogoutButton \/>/);
+  assert.doesNotMatch(layout, /LockButton/);
+  assert.match(settings, /<LockButton \/>/);
 });
 
-test('the login form can reveal the password', () => {
+test('the unlock form can reveal the password', () => {
   const source = readFileSync(
-    new URL('../src/app/login/page.tsx', import.meta.url),
+    new URL('../src/app/unlock/page.tsx', import.meta.url),
     'utf8',
   );
   assert.match(source, /type=\{revealed \? 'text' : 'password'\}/);

@@ -4,7 +4,7 @@ kind: web
 level: L3
 
 login:
-  mode: exempt
+  mode: P2
 
 deploy:
   platform: docker
@@ -18,9 +18,6 @@ release:
 
 # Renamed from Limen on 2026-10-02 (the old repo is xiangyumou/Limen, the old app id on the server was "limen").
 exceptions:
-  - rule: '8.9'
-    reason: The master password is also the key that decrypts the diary, so the server never holds a secret that could replace it; the administrator will put an Authelia gateway in front separately
-    until: 2027-03-31
   - rule: '4.4'
     reason: L3 by consequence (private, encrypted diary), but there is no browser end-to-end test yet; database-backed tests, a migration test on old-shaped data and an image run on an empty database stand in for it
     until: 2027-03-31

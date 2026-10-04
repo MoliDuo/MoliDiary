@@ -2,34 +2,34 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 
-test('login labels and retry countdown are Chinese-only', async () => {
-  const { formatRetryCountdown, getLoginSubmitLabel } =
-    await import('@/app/login/page');
+test('unlock labels and retry countdown are Chinese-only', async () => {
+  const { formatRetryCountdown, getUnlockSubmitLabel } =
+    await import('@/app/unlock/page');
 
-  assert.equal(getLoginSubmitLabel(false), '进入');
-  assert.equal(getLoginSubmitLabel(true), '进入中...');
+  assert.equal(getUnlockSubmitLabel(false), '进入');
+  assert.equal(getUnlockSubmitLabel(true), '进入中...');
   assert.equal(formatRetryCountdown(120), '02:00');
   assert.equal(formatRetryCountdown(900), '15:00');
 });
 
-test('login form uses the Server Action without intercepting submit', () => {
+test('unlock form uses the Server Action without intercepting submit', () => {
   const source = readFileSync(
-    new URL('../src/app/login/page.tsx', import.meta.url),
+    new URL('../src/app/unlock/page.tsx', import.meta.url),
     'utf8',
   );
-  assert.match(source, /useActionState\(login, undefined\)/);
+  assert.match(source, /useActionState\(unlock, undefined\)/);
   assert.match(source, /<form action=\{action\}/);
   assert.doesNotMatch(source, /preventDefault/);
   assert.doesNotMatch(source, /useRouter/);
 });
 
-test('login action converts backend failures into recoverable feedback', async () => {
-  const { handleLoginAttempt } = await import('@/lib/auth/actions');
+test('unlock action converts backend failures into recoverable feedback', async () => {
+  const { handleUnlockAttempt } = await import('@/lib/auth/actions');
   const reported: unknown[] = [];
   const failure = new Error('session storage unavailable');
 
   assert.deepEqual(
-    await handleLoginAttempt(
+    await handleUnlockAttempt(
       async () => {
         throw failure;
       },
@@ -44,7 +44,7 @@ test('login action converts backend failures into recoverable feedback', async (
     error: '密码错误或请求过于频繁',
   };
   assert.equal(
-    await handleLoginAttempt(
+    await handleUnlockAttempt(
       async () => invalidPassword,
       () => {},
     ),
@@ -52,13 +52,13 @@ test('login action converts backend failures into recoverable feedback', async (
   );
 });
 
-test('login redirect remains outside the rejected-attempt handler', () => {
+test('unlock redirect remains outside the rejected-attempt handler', () => {
   const source = readFileSync(
     new URL('../src/lib/auth/actions.ts', import.meta.url),
     'utf8',
   );
   assert.match(
     source,
-    /await handleLoginAttempt\([\s\S]*?\);\n  if \(!result\.ok\) return result;\n  redirect\('\/'\);/,
+    /await handleUnlockAttempt\([\s\S]*?\);\n  if \(!result\.ok\) return result;\n  redirect\('\/'\);/,
   );
 });

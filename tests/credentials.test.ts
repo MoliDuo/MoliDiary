@@ -15,7 +15,7 @@ import {
 } from '@/lib/auth/credentials';
 import { authorizeApiRequest } from '@/lib/auth/security';
 import { createSession, readSession } from '@/lib/auth/session';
-import { unlockForLogin } from '@/lib/auth/login-unlock';
+import { unlockForSession } from '@/lib/auth/session-unlock';
 import { createSecurityActions } from '@/lib/security-core';
 import type { AppDatabase } from '@/lib/db';
 import { createTestDb } from './helpers/test-db';
@@ -302,11 +302,11 @@ test('repeated wrong current passwords are throttled', async () => {
 
 test('login opens the password slot, or asks for setup when there is none', async () => {
   const empty = await freshDb();
-  assert.equal(await unlockForLogin('anything', empty), 'uninitialized');
+  assert.equal(await unlockForSession('anything', empty), 'uninitialized');
   assert.equal((await countKeySlots(empty)).password, 0);
 
   const db = await freshDb();
   await testDataKey(db);
-  assert.equal(await unlockForLogin('wrong', db), null);
-  assert.ok(Buffer.isBuffer(await unlockForLogin(TEST_PASSWORD, db)));
+  assert.equal(await unlockForSession('wrong', db), null);
+  assert.ok(Buffer.isBuffer(await unlockForSession(TEST_PASSWORD, db)));
 });

@@ -11,7 +11,7 @@ test('dashboard exposes an accessible settings icon and leaves theming to the ro
   assert.match(source, /settingsPath\(\)/);
   assert.match(source, /aria-label="设置"/);
   assert.match(source, /title="设置"/);
-  // The theme moved to <html> so it also covers /login, the document
+  // The theme moved to <html> so it also covers /unlock, the document
   // background and toasts. See tests/theme-shell.test.mjs.
   assert.doesNotMatch(source, /data-theme=/);
 });

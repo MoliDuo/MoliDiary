@@ -35,6 +35,9 @@ services:
       - traefik.docker.network=server-internal-net
       - traefik.http.routers.diary.rule=Host(`diary.xiangyu.pro`)
       - traefik.http.routers.diary.entrypoints=websecure
+      # Sign-in is the Authelia gateway (standard 008, P2); the app only reads Remote-User and
+      # Remote-Groups. It must stay unreachable except through Traefik: no published ports.
+      - traefik.http.routers.diary.middlewares=authelia@file
       - traefik.http.services.diary.loadbalancer.server.port=3000
 
   postgres:

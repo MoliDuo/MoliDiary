@@ -7,7 +7,8 @@ import {
   sessionCookieOptions,
   shouldRenewSession,
 } from '@/lib/auth/session';
-import { loginPath, stripLegacyLocalePath } from '@/lib/pathname';
+import { unlockPath, stripLegacyLocalePath } from '@/lib/pathname';
+import { checkGatewayAccess, type GatewayAccess } from '@/lib/auth/identity';
 import {
   applySecurityHeaders,
   buildContentSecurityPolicy,
@@ -16,18 +17,19 @@ import {
 
 type ProxyDecisionInput = {
   pathname: string;
+  access: GatewayAccess;
   hasSession: boolean;
 };
 
 type ProxyDecision =
-  | { type: 'json'; status: number; body: { error: string } }
+  | { type: 'forbidden' }
   | { type: 'redirect'; location: string }
   | { type: 'next' };
 
 // /healthz answers the deploy script and uptime monitors, which have no
 // session. The rest are served from the app root (the manifest by Next's metadata
 // file, the icons from public/): the manifest and icons are fetched without credentials during a PWA install, so
-// redirecting them to /login would break "add to home screen" outright.
+// redirecting them to /unlock would break "add to home screen" outright.
 const PUBLIC_ASSET_PATHS = new Set([
   '/healthz',
   '/favicon.ico',
@@ -41,6 +43,12 @@ const PUBLIC_ASSET_PATHS = new Set([
   '/apple-icon.png',
 ]);
 
+const FORBIDDEN_PAGE =
+  '<!doctype html><html lang="zh-CN"><meta charset="utf-8">' +
+  '<meta name="viewport" content="width=device-width, initial-scale=1">' +
+  '<title>权限不足</title><body style="font-family:system-ui;text-align:center;margin-top:20vh">' +
+  '<h1>权限不足</h1><p>只有管理员可以访问 Moli Diary。</p></body></html>';
+
 export function shouldBypassProxy(pathname: string) {
   return (
     pathname.startsWith('/_next/static/') ||
@@ -52,6 +60,7 @@ export function shouldBypassProxy(pathname: string) {
 
 export function evaluateProxyRequest({
   pathname,
+  access,
   hasSession,
 }: ProxyDecisionInput): ProxyDecision {
   if (shouldBypassProxy(pathname)) return { type: 'next' };
@@ -59,22 +68,28 @@ export function evaluateProxyRequest({
   const normalizedPath = stripLegacyLocalePath(pathname);
   if (normalizedPath !== pathname)
     return { type: 'redirect', location: normalizedPath };
-  if (pathname === '/login') {
+  // The gateway has already sent anyone who is not signed in to Authelia, so
+  // what reaches here is either an administrator or someone who must not see
+  // the diary at all (standard 008, 8.4.2a).
+  if (access !== 'admin') return { type: 'forbidden' };
+  if (pathname === unlockPath()) {
     return hasSession ? { type: 'redirect', location: '/' } : { type: 'next' };
   }
   return hasSession
     ? { type: 'next' }
-    : { type: 'redirect', location: loginPath() };
+    : { type: 'redirect', location: unlockPath() };
 }
 
 export async function proxy(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
   if (shouldBypassProxy(pathname)) return NextResponse.next();
 
+  const access = checkGatewayAccess(request.headers);
   const cookie = request.cookies.get(SESSION_COOKIE_NAME)?.value;
-  const session = await readSession(db, cookie);
+  const session = access === 'admin' ? await readSession(db, cookie) : null;
   const decision = evaluateProxyRequest({
     pathname,
+    access,
     hasSession: Boolean(session),
   });
   const nonce = createRequestNonce();
@@ -84,8 +99,11 @@ export async function proxy(request: NextRequest) {
   requestHeaders.set('Content-Security-Policy', contentSecurityPolicy);
 
   let response: NextResponse;
-  if (decision.type === 'json') {
-    response = NextResponse.json(decision.body, { status: decision.status });
+  if (decision.type === 'forbidden') {
+    response = new NextResponse(FORBIDDEN_PAGE, {
+      status: 403,
+      headers: { 'Content-Type': 'text/html; charset=utf-8' },
+    });
   } else if (decision.type === 'redirect') {
     response = NextResponse.redirect(new URL(decision.location, request.url));
   } else {
@@ -98,7 +116,7 @@ export async function proxy(request: NextRequest) {
       cookie,
       sessionCookieOptions(await renewSession(db, session)),
     );
-  } else if (!session && cookie) {
+  } else if (access === 'admin' && !session && cookie) {
     // Signed out elsewhere, expired or tampered: drop it so the browser stops
     // sending it.
     response.cookies.set(

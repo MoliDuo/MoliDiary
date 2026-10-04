@@ -3,7 +3,7 @@ export const messages = {
     timeline: '时间线',
     search: '搜索',
     new: '新建',
-    logout: '退出登录',
+    lock: '锁定',
     edit: '编辑',
     delete: '删除',
     regenerate: '重新生成',
@@ -115,10 +115,10 @@ export const messages = {
     message: '找不到这个页面',
     backToTimeline: '回到时间线',
   },
-  login: {
+  unlock: {
     submitIdle: '进入',
     submitLoading: '进入中...',
-    password: '密码',
+    password: '主密码',
     showPassword: '显示密码',
     hidePassword: '隐藏密码',
     unexpectedError: '发生了意外错误',
